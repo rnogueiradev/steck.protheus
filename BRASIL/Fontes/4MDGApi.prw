@@ -33,7 +33,7 @@ END WSRESTFUL
 WSMETHOD POST Fornecedores WSSERVICE 4MDGAPI
 
 Local lRet          := .T.
-Local nStatusCode   := 200 //teste 2
+Local nStatusCode   := 200 //teste 3
 Local cMessage      := ""
 Local oJForn        := JSonObject():New()
 Local cBody         := ""
