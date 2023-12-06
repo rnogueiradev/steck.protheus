@@ -1,0 +1,2048 @@
+#INCLUDE "rwmake.ch"
+#include "protheus.ch"
+#INCLUDE "TOPCONN.CH"
+#INCLUDE "TOTVS.CH"
+#INCLUDE "dbtree.ch"
+#INCLUDE "tbiconn.ch"
+#INCLUDE "APWIZARD.CH"
+
+//*****************************************************************
+/*/{Protheus.doc} STAPIMANUAL
+	Esta função apresenta tela para Processamento manual das rotinas 
+	de integração S&OP Colplan
+	@type function
+	@version  1.00
+	@author Rogério Costa | CRM Services 
+	@since 02/11/2022 
+/*/
+//*****************************************************************
+User Function STAPIMANUAL()
+
+	Local oGrid
+	Local lEnd := .F.
+
+	oGrid:=FWGridProcess():New("U_STAPIEXEC", "Integração Protheus", "Integração entre Protheus e API Colplan. ", {|lEnd| U_STAPIEXEC(oGrid)},"","")
+
+	oGrid:SetMeters(1)
+
+	oGrid:Activate()
+
+	If oGrid:IsFinished()
+		FWAlertSuccess("Integração realizada com sucesso")
+	Else
+		FWAlertError("Fim com erro.")
+	EndIf
+
+Return
+
+
+//*****************************************************************
+/*/{Protheus.doc} STAPIEXEC
+	Esta função é responsável pelo processamento das rotinas 
+	integração S&OP Colplan
+	@type function
+	@version  1.00
+	@author Rogério Costa | CRM Services 
+	@since 02/11/2022 
+/*/
+//*****************************************************************
+User Function STAPIEXEC(oGrid)
+
+	Local cEmp			:=	'11'//'11'
+	Local cFil			:=	'01'//'01'
+	Local cTokenAcesso	:=	''
+	Local aParamBox   	:= {}
+	Local aRet 		  	:= {}
+
+	If Select("SX2") == 0
+		PREPARE ENVIRONMENT EMPRESA cEmp FILIAL cFil
+	EndIf
+
+	If LockByName("STAPIEXEC"+cEmpAnt,.T.,.T.)  //bOk := CpyS2T( cLogFile, "C:\DADOS", .F. )
+
+		cTokenAcesso	:=	STAPITOKEN()
+
+		If IsInCallStack("U_STAPIMANUAL")
+
+			aAdd( aParamBox ,{5,"001 - Produtos"                ,.F.,90,"",.F.})
+			aAdd( aParamBox ,{5,"002 - Canais de Vendas"        ,.F.,90,"",.F.})
+			aAdd( aParamBox ,{5,"003 - Pedidos de Venda"		,.F.,100,"",.F.})
+			aAdd( aParamBox ,{5,"004 - Faturamento "			,.F.,100,"",.F.})
+			aAdd( aParamBox ,{5,"005 - Preço "					,.F.,100,"",.F.})
+			aAdd( aParamBox ,{5,"006 - Estoque "				,.F.,100,"",.F.})
+			aAdd( aParamBox ,{5,"007 - Custo "					,.F.,100,"",.F.})
+
+			If !ParamBox(aParamBox, "ESCOLHA QUAIS REGISTROS INTEGRAR", aRet)
+				Return Nil
+			Else
+
+				If aRet[1]
+					U_STAPIPROD(cTokenAcesso,oGrid) 				//POST DE PRODUTOS
+				EndIf
+
+				If aRet[2]
+					U_STAPICANALVENDAS(cTokenAcesso,oGrid)	//POST DE CANAL DE VENDAS
+				EndIf
+
+				If aRet[3]
+					U_STAPIPEDIDOS(cTokenAcesso,oGrid)		//POST DE CARTEIRA DE PEDIDOS
+				EndIf
+
+				If aRet[4]
+					U_STAPIFAT(cTokenAcesso,oGrid)			//POST DE FATURAMENTO
+				EndIf
+
+				If aRet[5]
+					U_STAPIPRECO(cTokenAcesso,oGrid)			//POST DE PRECO
+				EndIf
+
+				If aRet[6]
+					U_STAPIESTOQUE(cTokenAcesso,oGrid)		//POST DE ESTOQUE
+				EndIf
+
+				If aRet[7]
+					U_STAPICUSTO(cTokenAcesso,oGrid)			//POST DE CUSTOS
+				EndIf
+
+			EndIf
+
+			UnlockByName("STAPIEXEC"+cEmpAnt,.T.,.T.)
+		Else
+
+			U_STAPIPROD(cTokenAcesso) 						//POST DE PRODUTOS
+
+			U_STAPICANALVENDAS(cTokenAcesso)			//POST DE CANAL DE VENDAS
+
+			U_STAPIPEDIDOS(cTokenAcesso)						//POST DE CARTEIRA DE PEDIDOS
+
+			U_STAPIFAT(cTokenAcesso)					//POST DE FATURAMENTO
+
+			U_STAPIPRECO(cTokenAcesso)						//POST DE CARTEIRA DE PEDIDOS
+
+			U_STAPIESTOQUE(cTokenAcesso)						//POST DE ESTOQUE
+
+			U_STAPICUSTO(cTokenAcesso)						//POST DE CUSTOS
+
+			UnlockByName("STAPIEXEC"+cEmpAnt,.T.,.T.)
+
+		EndIf
+
+	Else
+
+		If IsInCallStack("U_STAPIMANUAL")
+
+			FWAlertWarning("A rotina já está sendo executada por outro processo", "Integração API")
+
+		EndIf
+
+	EndIf
+
+
+Return
+
+
+//*****************************************************************
+/*/{Protheus.doc} STAPITOKEN
+	Retorna o token para acesso aos endpoints da API
+	@type function
+	@version  1.00
+	@author Rogério Costa | CRM Services 
+	@since 02/11/2022 
+	@return character, token de acesso para api
+/*/
+//*****************************************************************
+Static Function STAPITOKEN()
+
+	Local cPOSTParms:= 	""
+	Local oJson     := 	JsonObject():New()
+	Local aHeadOut  := 	{}
+	Local cUrlApi   := 	""
+	Local cEmp		:=	'11'
+	Local cFil		:=	'01'
+	Local cRetToken	:=	""
+	Local cUrl		:= ""
+	Local cUsrApi   := ""
+	Local cPassApi  := ""
+
+	If Select("SX2") == 0
+		PREPARE ENVIRONMENT EMPRESA cEmp FILIAL cFil
+	EndIf
+
+	cUrlApi   := SuperGetMv("ST_URLCOLP",,"https://homo-steck-colplan.ve3.com.br/api")
+	cUsrApi   := SuperGetMv("ST_USRCOLP",,"importer")
+	cPassApi  := SuperGetMv("ST_PSWCOLP",,"123")
+
+	Aadd(aHeadOut,'Authorization: OAuth oauth_consumer_key="", oauth_nonce="ZocjTYnd5a7YYLIyxtrqJc6cEZVMQV1E", oauth_signature="MbVZzmWMsgF6baTBLSHiconECSk%3D", oauth_signature_method="HMAC-SHA1", oauth_timestamp="1667332255", oauth_version="1.0"')
+	Aadd(aHeadOut,'Content-Type: application/json')
+
+	cUrl := cUrlApi
+	cPath := "/oauth"
+	cPOSTParms := '{"client_id": "'+cUsrApi+'",    "client_secret": "'+cPassApi+'",    "grant_type": "client_credentials"}'
+
+	oJson:= FWRest():New(cUrl)
+	oJson:nTimeOut := 1200
+
+	oJson:SetPath(cPath)
+	oJson:SetPostParams(cPOSTParms)
+
+	If oJson:Post(aHeadOut)
+
+		oRetorno:=JsonObject():New()
+		oRetorno:FromJson(oJson:GetResult())
+
+		cRetToken	:=	oRetorno['access_token']
+	EndIf
+
+
+Return(cRetToken)
+
+
+//*****************************************************************
+/*/{Protheus.doc} STAPIPROD
+	Função responsável pelo envio do cadastro de produtos tipo PA 
+	para API COLPLAN
+	@type function
+	@version  1.00
+	@author Rogério Costa | CRM Services 
+	@since 02/11/2022 
+	@param cToken, character, Token de acesso a API
+	@param oGrid, object, Atualiza mensagens para usuário
+/*/
+//*****************************************************************
+User Function STAPIPROD(cToken,oGrid)
+
+	Local nTimeOut  := 120
+	Local aHeadOut  := {}
+	Local cHeadRet  := ""
+	Local cUrlApi   := ""
+	Local cPath 	:= "/async/products"
+	Local cBody		:=	''
+	Local sPostRet	:=	''
+	Local cQrProd	:=	''
+	Local cAliasPRD	:=	''
+	Local cRet		:=	''
+	Local oRet
+	Local nRecno	:= 1
+	Local nRecnoAtu	:= 0
+	Local aParamBox := {}
+	Local cProdDe  	:= ""
+	Local cProdAt  	:= ""
+	Local cPrdIni	:=	""
+	Local cPrdFim	:=	""
+	Local cEmp		:= '11'
+	Local cFil		:= '01'
+	Local aRet		:= {}
+	Local cUrl		:= ""
+	Local nRecGrv 	:=	0
+
+	If !IsInCallStack("U_STAPIEXEC")
+
+		If Select("SX2") == 0
+			PREPARE ENVIRONMENT EMPRESA cEmp FILIAL cFil
+		EndIf
+	EndIf
+
+	If IsInCallStack("U_STAPIMANUAL")
+
+		cProdDe  	:= Space(TamSX3('B1_COD')[01])
+		cProdAt  	:= Space(TamSX3('B1_COD')[01])
+
+		aAdd( aParamBox,	{1,		"Produto De"		,cProdDe						,""		,""		,"SB1"		,""		,50		,.T.})
+		aAdd( aParamBox,	{1,		"Produto Até"		,cProdAt						,""		,""		,"SB1"		,""		,50		,.T.})
+
+		If !ParamBox(aParamBox, "Seleção de produtos", aRet)
+			Return Nil
+		Else
+			cPrdIni	:=	aRet[1]
+			cPrdFim	:=	aRet[2]
+		EndIf
+	Else
+
+		nRecno := SuperGetMv("ST_PRXREPR",,1)
+
+	EndIf
+
+	cUrlApi   := SuperGetMv("ST_URLCOLP",,"https://homo-steck-colplan.ve3.com.br/api")
+
+	cUrl 		:= cUrlApi+cPath
+
+	cProdDe  	:= Space(TamSX3('B1_COD')[01])
+	cProdAt  	:= Space(TamSX3('B1_COD')[01])
+
+	If Empty(cToken)
+		cToken	:=	STAPITOKEN()
+	EndIf
+
+	Aadd(aHeadOut,'Authorization: Bearer '+cToken)
+	Aadd(aHeadOut,'Content-Type: application/json')
+	Aadd(aHeadOut,'Accept: application/json')
+	AAdd(aHeadOut, "User-Agent: Chrome/65.0 (compatible; Protheus " + GetBuild() + ")")
+
+	nTimeOut := 1200
+
+	If nRecno == 0
+		nRecno :=	1
+	EndIf
+
+	While nRecno > 0
+
+		cQrProd := "SELECT SB1.R_E_C_N_O_ R_E_C_N_O_, BM_XAGRUP3, Z93_DSCGRP,BM_XAGRUP2, Z92_DSCGRP, B1_GRUPO, BM_DESC, B1_COD,B1_DESC," + CRLF
+		cQrProd += "' ' NA, B1_UM,' ' NA2,' ' NA3,' ' NA4 "+ CRLF
+		cQrProd += "FROM " + RetSqlName('SBM') +' SBM, ' +RetSqlName('SB1') + ' SB1, ' + RetSqlName('Z92') + CRLF
+		cQrProd += " Z92, "+ RetSqlName('Z93') + ' Z93 ' + CRLF
+		cQrProd += "WHERE SB1.B1_TIPO ='PA'"                 	+ CRLF
+
+		If !Empty(cPrdFim)
+			cQrProd += "AND B1_COD BETWEEN '" + cPrdIni + "' AND '" + cPrdFim + "'"+ CRLF
+		Else
+			cQrProd += "AND SB1.R_E_C_N_O_ BETWEEN "+ cValtochar(nRecno)+" AND "+ cValtochar(nRecno+1000) + CRLF
+		EndIf
+
+		cQrProd += "AND B1_GRUPO = BM_GRUPO"					+ CRLF
+		cQrProd += "AND BM_XAGRUP2 = Z92_CODGRP"				+ CRLF
+		cQrProd += "AND BM_XAGRUP3 = Z93_CODGRP"				+ CRLF
+		cQrProd += "AND SB1.D_E_L_E_T_=' '"						+ CRLF
+		cQrProd += "AND SBM.D_E_L_E_T_=' '"						+ CRLF
+		cQrProd += "AND Z92.D_E_L_E_T_=' '"						+ CRLF
+		cQrProd += "AND Z93.D_E_L_E_T_=' '"						+ CRLF
+		cQrProd += "ORDER BY SB1.R_E_C_N_O_"						+ CRLF
+
+		TCQuery cQrProd  New Alias (cAliasPRD:=GetNextAlias())
+
+		dbSelectArea(cAliasPRD)
+
+		(cAliasPRD)->(dbGoTop())
+
+		If Select(cAliasPRD) > 0
+			nRecnoAtu	:=	(cAliasPRD)->R_E_C_N_O_
+		EndIf
+
+		If nRecnoAtu > 0
+
+			cBody:='[ '
+
+			While !(cAliasPRD)->(Eof())
+
+				cBody+='{'																	+ CRLF
+				cBody+='"code_level_1": "' 		+ (cAliasPRD)->BM_XAGRUP3  +'",' 			+ CRLF
+				cBody+='"description_level_1":"'+ Alltrim((cAliasPRD)->Z93_DSCGRP) +'",'	+ CRLF
+				cBody+='"code_level_2": "' 		+ (cAliasPRD)->BM_XAGRUP2 +'",'				+ CRLF
+				cBody+='"description_level_2":"'+ Alltrim((cAliasPRD)->Z92_DSCGRP) +'",'	+ CRLF
+				cBody+='"code_level_3": "' 		+ (cAliasPRD)->B1_GRUPO +'",'				+ CRLF
+				cBody+='"description_level_3":"'+ Alltrim((cAliasPRD)->BM_DESC) +'",'		+ CRLF
+				cBody+='"code_level_4": "' 		+ (cAliasPRD)->B1_COD +'",'					+ CRLF
+				cBody+='"description_level_4":"'+ Alltrim((cAliasPRD)->B1_DESC) +'",'		+ CRLF
+				cBody+='"service_strategy": "' 	+ (cAliasPRD)->NA +'",'						+ CRLF
+				cBody+='"measurement_unit": "' 	+ (cAliasPRD)->B1_UM +'",'					+ CRLF
+				cBody+='"conversion_unit": "' 	+ (cAliasPRD)->NA2 +'",'					+ CRLF
+				cBody+='"conversion_factor": 1.00,'											+ CRLF
+				cBody+='"acquisition_strategy":"'+ (cAliasPRD)->NA4 +'"'					+ CRLF
+				cBody+='}'																	+ CRLF
+
+				nRecGrv := (cAliasPRD)->R_E_C_N_O_
+
+				(cAliasPRD)->(dbSkip())
+
+				If !(cAliasPRD)->(Eof())
+					cBody+=','
+				EndIf
+
+			EndDo
+
+			cBody+=']'
+
+			(cAliasPRD)->(DBCLOSEAREA())
+
+			If Empty(cPrdFim)
+				nRecno	:=	nRecno+1000
+			Else
+				nRecno	:=	0
+			EndIf
+
+			cBody	:=	FwNoAccent(cBody)
+
+			sPostRet := HttpPost(cUrl,,EncodeUTF8(cBody),nTimeOut,aHeadOut,@cHeadRet)
+
+			oRet:=JsonObject():New()
+			oRet:FromJson(sPostRet)
+
+			If oRet["title"] <> 'Accepted'
+				cRet	:= cValtochar(oRet["status"]) +' - '+oRet["title"] + CRLF
+				cRet	+= oRet["detail"]+ CRLF
+
+				cMsg	:= "Função STAPIPROD -"+ Time()+" Erro no envio:" 	+	CRLF
+				cMsg	+= cRet						+	CRLF
+				cMsg	+= "Json com problema:"		+ 	CRLF
+				cMsg	+= cBody					+ 	CRLF
+
+				U_STAPILOG(cMsg,"STAPIPROD")
+			Else
+
+				cUrlRet	:= 	oRet["_links"]["job"]["href"]
+
+				cMsg	:=	"Sucesso no envio do lote"
+
+				PutMv("ST_PRXREPR", nRecGrv)
+
+				U_STAPILOG(cMsg,"STAPIPROD")
+
+				If !IsInCallStack("U_STAPIMANUAL")
+					STAPIREPOST(cUrlRet,cToken)
+				Endif
+
+			EndIf
+
+			cMsg	:= Time()+" - STAPIPROD - Proximo Recno " + cValtoChar(nRecno)
+
+			U_STAPILOG(cMsg,"STAPIPROD")
+
+		Else
+			cMsg	:= Time()+" - STAPIPROD - Fim do Processamento "
+
+			U_STAPILOG(cMsg,"STAPIPROD")
+
+			Return
+
+		EndIf
+	EndDo
+
+Return
+
+
+//*****************************************************************
+/*/{Protheus.doc} STAPICANALVENDAS
+	Função responsável pelo envio do cadastro de clientes para 
+	API COLPLAN
+	@type function
+	@version  1.00
+	@author Rogério Costa | CRM Services 
+	@since 02/11/2022 
+	@param cToken, character, Token de acesso a API
+	@param oGrid, object, Atualiza mensagens para usuário
+/*/
+//*****************************************************************
+User Function STAPICANALVENDAS(cToken,oGrid)
+
+	Local nTimeOut     := 120
+	Local aHeadOut     := {}
+	Local cHeadRet     := ""
+	Local cUrlApi      := ""
+	Local cPath        := "/async/channels"
+	Local cBody        := ''
+	Local sPostRet     := ''
+	Local cRet         := ''
+	Local oRet
+	Local cAlias       := ''
+	Local cRegiao      := ''
+	Local cRegiaoD     := ''
+	Local nRecno 	   := 1
+	Local nRecnoAtu    := 0
+	Local cCliDe       := ""
+	Local cCliAte      := ""
+	Local cCodLevel2   := ""
+	Local cDescLevel2  := ""
+	Local cDesc_level4 := ""
+	Local cCliIni	   := ""
+	Local cCliFim	   := ""
+	Local aParamBox	   := {}
+	Local aRet		   := {}
+	Local dDataDe
+	Local dDataAte
+	Local cEmp		   := '11'
+	Local cFil		   := '01'
+	Local cUrl			:= ""
+	Local nRecGrv 		:=	0
+
+	If !IsInCallStack("U_STAPIEXEC")
+
+		If Select("SX2") == 0
+			PREPARE ENVIRONMENT EMPRESA cEmp FILIAL cFil
+		EndIf
+	EndIf
+
+	cCliDe      := Space(TamSX3( 'A1_COD' )[01])
+	cCliAte     := Space(TamSX3( 'A1_COD' )[01])
+	dDataDe	   	:= Ctod("//")
+	dDataAte	:= Ctod("//")
+
+	If IsInCallStack("U_STAPIMANUAL")
+
+		If Select("SX2") == 0
+			PREPARE ENVIRONMENT EMPRESA cEmp FILIAL cFil
+		EndIf
+
+		aAdd( aParamBox,	{1,		"Clientes De"		,cCliDe 						,""		,""		,"SA1"		,""		,50		,.T.})
+		aAdd( aParamBox,	{1,		"Clientes Até"		,cCliAte						,""		,""		,"SA1"		,""		,50		,.T.})
+
+		aAdd( aParamBox,	{1,		"Dt.Faturamento De"	,dDataDe,""		,"MV_PAR03 <= ddatabase"		,""		,""		,50		,.T.})
+		aAdd( aParamBox,	{1,		"Dt.Faturamento Até",dDataAte,""	,"MV_PAR04 <= ddatabase"		,""		,""		,50		,.T.})
+
+		If !ParamBox(aParamBox, "Seleção de Clientes", aRet)
+			Return Nil
+		Else
+
+			cCliIni	:=	aRet[1]
+			cCliFim	:=	aRet[2]
+			dDataDe	:=	aRet[3]
+			dDataAte:=	aRet[4]
+
+		EndIf
+	Else
+		nRecno      := SuperGetMv("ST_PRXRECL",,1)
+	EndIf
+
+	cUrlApi      := SuperGetMv("ST_URLCOLP",,"https://homo-steck-colplan.ve3.com.br/api")
+
+	cUrl         := cUrlApi+cPath
+
+	If Empty(cToken)
+		cToken	:=	STAPITOKEN()
+	EndIf
+
+	Aadd(aHeadOut,'Authorization: Bearer '+cToken)
+	Aadd(aHeadOut,'Content-Type: application/json')
+	Aadd(aHeadOut,'Accept: application/json')
+	AAdd(aHeadOut, "User-Agent: Chrome/65.0 (compatible; Protheus " + GetBuild() + ")")
+
+	nTimeOut := 1200
+
+	While nRecno > 0
+
+		cQrCanal := "SELECT SA1.R_E_C_N_O_, ACY_GRPVEN code_level_1 , ACY_DESCRI description_level_1," 	+ CRLF
+		cQrCanal += " A1_XESCALA code_level_2, A1_XESCALD description_level_2 , " 						+ CRLF
+		cQrCanal += " A1_EST code_level_3, 'REGRA DE NEGOCIO' description_level_3," 					+ CRLF
+		cQrCanal += " A1_COD||A1_LOJA code_level_4, A1_NOME description_level_4, A1_CGC identifier" 	+ CRLF
+		cQrCanal += "FROM " + RetSqlName( 'SA1' ) + ' SA1, ' +RetSqlName( 'ACY' ) + ' ACY, ' 			+ CRLF
+		cQrCanal += RetSqlName( 'SF2' ) + ' SF2 '														+ CRLF
+		cQrCanal += "WHERE SA1.A1_GRPVEN = ACY_GRPVEN" 													+ CRLF
+		cQrCanal += "AND A1_COD = F2_CLIENTE "															+ CRLF
+		cQrCanal += "AND A1_LOJA = F2_LOJA "															+ CRLF
+
+		If !Empty(cCliFim)
+			cQrCanal += "AND A1_COD BETWEEN '"	+	cCliIni	+ "' AND '"	+	cCliFim	+ "'"				+ CRLF
+			cQrCanal += "AND F2_EMISSAO BETWEEN '"+DtoS(dDataDe)+"' AND '"+DtoS(dDataAte)+"'"				+ CRLF
+		Else
+			cQrCanal += "AND SA1.R_E_C_N_O_ BETWEEN "+ cValtochar(nRecno)+" AND "+ cValtochar(nRecno+500) + CRLF //voltar
+		EndIf
+
+		cQrCanal += "AND SA1.D_E_L_E_T_=' '" 											+ CRLF
+		cQrCanal += "AND ACY.D_E_L_E_T_=' '"										 	+ CRLF
+		cQrCanal += "AND SF2.D_E_L_E_T_=' '"										 	+ CRLF
+		cQrCanal += "ORDER BY SA1.R_E_C_N_O_"										 	+ CRLF
+
+		TCQuery cQrCanal  New Alias (cAlias:=GetNextAlias())
+
+		dbSelectArea(cAlias)
+
+		(cAlias)->(dbGoTop())
+
+		If Select(cAlias) > 0
+			nRecnoAtu	:=	(cAlias)->R_E_C_N_O_
+		EndIf
+
+		If nRecnoAtu > 0
+			cBody:='[ '
+
+			While !(cAlias)->(Eof())
+
+				If IsInCallStack("U_STAPIMANUAL")
+					cMsg := "Gerando Lote Canal de Vendas para Envio.." + FwNoAccent(Alltrim(cDesc_level4))
+					oGrid:SetIncMeter(1,cMsg)
+					ProcessMessages()
+				EndIf
+
+				cBody+='{'+ CRLF
+
+				DO CASE
+				CASE  (cAlias)->code_level_3 $ 'DF|GO|MT|MS'
+					cRegiao	:=	'C'
+					cRegiaoD:=	'Centro-Oeste'
+				CASE  (cAlias)->code_level_3 $ 'AL|BA|CE|MA|PB|PE|PI|RN|SE'
+					cRegiao := 'NE'
+					cRegiaoD:=	'Nordeste'
+				CASE  (cAlias)->code_level_3 $ 'AC|AP|AM|PA|RO|RR|TO|'
+					cRegiao := 'N'
+					cRegiaoD:=	'Norte'
+				CASE  (cAlias)->code_level_3 $ 'ES|MG|RJ|SP'
+					cRegiao := 'SE'
+					cRegiaoD:=	'Sudeste'
+				CASE  (cAlias)->code_level_3 $ 'EX'
+					cRegiao := 'EX'
+					cRegiaoD:=	'Exportacao'
+				OTHERWISE
+					cRegiao := 'S'
+					cRegiaoD:=	'Sul'
+				END CASE
+
+				cDesc_level4	:= 	STRTRAN(Alltrim((cAlias)->description_level_4),'"','')
+				cDesc_level4	:= 	SUBSTRING(cDesc_level4,1,38)
+
+				If Empty((cAlias)->code_level_2)
+					cCodLevel2	:=	"NA"
+					cDescLevel2	:=	"NA"
+				Else
+					cCodLevel2	:=	Alltrim((cAlias)->code_level_2)
+					cDescLevel2	:=	Alltrim((cAlias)->description_level_2)
+				EndIf
+
+				cBody+='"code_level_1": "'+ (cAlias)->code_level_1 +'",'						+ CRLF
+				cBody+='"description_level_1":"'+ Alltrim(FwNoAccent((cAlias)->description_level_1))+'",'	+ CRLF
+				cBody+='"code_level_2": "' 		+ Alltrim(cCodLevel2) +'",'						+ CRLF
+				cBody+='"description_level_2":"'+ FwNoAccent(Alltrim(cDescLevel2)) +'",'					+ CRLF
+				cBody+='"code_level_3": "' 		+ Alltrim(cRegiao) +'",'						+ CRLF
+				cBody+='"description_level_3":"'+ FwNoAccent(Alltrim(cRegiaoD)) +'",'						+ CRLF
+				cBody+='"code_level_4": "' 		+ Alltrim((cAlias)->code_level_4) +'",'			+ CRLF
+				cBody+='"description_level_4":"'+ FwNoAccent(Alltrim(cDesc_level4)) +'",'					+ CRLF
+				cBody+='"identifier": "' 		+ Alltrim((cAlias)->identifier) +'"'			+ CRLF
+
+				cBody+='}'																		+ CRLF
+
+				nRecGrv := (cAlias)->R_E_C_N_O_
+
+				(cAlias)->(dbSkip())
+
+				If !(cAlias)->(Eof())
+					cBody	+=','
+				EndIf
+
+			EndDo
+
+			(cAlias)->(DBCLOSEAREA())
+
+			cBody+=']'
+
+			If Empty(cCliIni)
+				nRecno	:=	nRecno+500
+			Else
+				nRecno	:=	0
+			EndIf
+
+			If nRecnoAtu	==	0
+				nRecno	:=	0
+			EndIf
+
+			If IsInCallStack("U_STAPIMANUAL")
+				cMsg := "Enviando Lote para API.."
+				oGrid:SetIncMeter(1,cMsg)
+				ProcessMessages()
+			EndIf
+
+			sPostRet := HttpPost(cUrl,,EncodeUTF8(cBody),nTimeOut,aHeadOut,@cHeadRet)
+
+			//Retorno do Post
+			oRet:=JsonObject():New()
+			oRet:FromJson(sPostRet)
+			cRet	:=	oRet["title"]
+
+			If oRet["title"] <> 'Accepted'
+				cRet	:= cValtochar(oRet["status"]) +' - '+oRet["title"] + CRLF
+				cRet	+= oRet["detail"]+ CRLF
+
+				If !Empty(cCliIni)
+
+					cMsg := "Resultado do envio.." + cRet
+					oGrid:SetIncMeter(1,cMsg)
+					ProcessMessages()
+
+				EndIf
+
+				cMsg	:= "Função STAPICANALVENDAS -"+ Time()+" Erro no envio:" 	+	CRLF
+				cMsg	+= cRet						+	CRLF
+				cMsg	+= "Json com problema:"		+ 	CRLF
+				cMsg	+= cBody					+ 	CRLF
+
+				U_STAPILOG(cMsg,"STAPICANALVENDAS")
+			Else
+
+				cUrlRet	:= 	oRet["_links"]["job"]["href"]
+
+				cMsg	:=	"Sucesso no envio do lote"
+
+				U_STAPILOG(cMsg,"STAPIPROD")
+
+				PutMV("ST_PRXRECL",nRecGrv)
+
+				If !IsInCallStack("U_STAPIMANUAL")
+					STAPIREPOST(cUrlRet,cToken)
+				Endif
+
+			EndIf
+
+			cMsg	:= Time()+"-STAPICANALVENDAS- Proximo Recno " + cValtoChar(nRecno)
+
+			U_STAPILOG(cMsg,"STAPICANALVENDAS")
+
+		Else
+			cMsg	:= Time()+"-STAPICANALVENDAS- Fim do Processamento "
+
+			U_STAPILOG(cMsg,"STAPICANALVENDAS")
+
+			If IsInCallStack("U_STAPIMANUAL") .And. !Empty(dDataAte)
+				FWAlertHelp( "Sem dados para integrar", 'Escolha outro periodo' )
+				nRecno := 0
+			EndIf
+
+			Return
+
+		EndIf
+
+	EndDo
+
+Return
+
+
+//*****************************************************************
+/*/{Protheus.doc} STAPIPEDIDOS
+	Função responsável pelo envio da carteira de pedidos para S&OP 
+	Colplan
+	@type function
+	@version  1.00
+	@author Rogério Costa | CRM Services 
+	@since 03/11/2022 
+	@param cToken, character, Token de acesso a API
+	@param oGrid, object, Atualiza mensagens para usuário
+/*/
+//*****************************************************************
+User Function STAPIPEDIDOS(cToken,oGrid)
+
+	Local nTimeOut  := 120
+	Local aHeadOut  := {}
+	Local cHeadRet  := ""
+	Local cUrlApi   := ""
+	Local cPath 	:= "/async/orders/channel-hierarchy"
+	Local cBody		:=	''
+	Local sPostRet	:=	''
+	Local cRet		:=	''
+	Local oRet
+	Local cQrPED	:=	''
+	Local cAliasPed	:=	''
+	Local cDtEntrega:=	''
+	Local cDtPed	:=	''
+	Local cRegiao 	:= ''
+	Local nRecno 	:= 1
+	Local nRecnoAtu	:= 0
+	Local cNumPed	:=""
+	Local aParamBox	:= {}
+	Local aRet		:= {}
+	Local dDataDe
+	Local dDataAte
+	Local cEmp		:= '11'
+	Local cFil		:= '01'
+	Local cUrl			:= ""
+	Local nRecGrv 		:=	0
+
+	If !IsInCallStack("U_STAPIEXEC")
+
+		If Select("SX2") == 0
+			PREPARE ENVIRONMENT EMPRESA cEmp FILIAL cFil
+		EndIf
+	EndIf
+
+	If Empty(cToken)
+		cToken	:=	STAPITOKEN()
+	EndIf
+
+	dDataDe	:=	Ctod("01/01/22")
+	dDataAte:=	dDataBase
+
+	If IsInCallStack("U_STAPIMANUAL")
+
+		aAdd( aParamBox,	{1,		"Dt Emissao Pedido De"		,dDataDe	,""		,"MV_PAR01 <= ddatabase"		,""		,""		,50		,.T.})
+		aAdd( aParamBox,	{1,		"Dt Emissao Pedido Até"		,dDataAte	,""		,"MV_PAR02 <= ddatabase"		,""		,""		,50		,.T.})
+
+		If !ParamBox(aParamBox, "DATA DE EMISSÃO",aRet)
+			Return Nil
+		Else
+			dDataDe	:=	aRet[1]
+			dDataAte:=	aRet[2]
+		EndIf
+
+		cMsg := "Consultando registros.."
+		oGrid:SetIncMeter(1,cMsg)
+		ProcessMessages()
+	Else
+		nRecno      := SuperGetMv("ST_PRXREPV",,1)
+	EndIf
+
+	cUrlApi   := SuperGetMv("ST_URLCOLP",,"https://homo-steck-colplan.ve3.com.br/api")
+
+	cUrl         := cUrlApi+cPath
+
+	Aadd(aHeadOut,'Authorization: Bearer '+cToken)
+	Aadd(aHeadOut,'Content-Type: application/json')
+	Aadd(aHeadOut,'Accept: application/json')
+	AAdd(aHeadOut, "User-Agent: Chrome/65.0 (compatible; Protheus " + GetBuild() + ")")
+
+	If Empty(cToken)
+		cToken	:=	STAPITOKEN()
+	EndIf
+
+	While nRecno > 0
+
+		cQrPED := "SELECT C6_NUM code, SC5.R_E_C_N_O_ RECNO, C5_EMISSAO date_request, ACY_GRPVEN channel_code_level_1," 			+ CRLF
+		cQrPED += "	A1_XESCALA channel_code_level_2, A1_EST channel_code_level_3, A1_COD||A1_LOJA channel_code_level_4," 			+ CRLF
+		cQrPED += "'"+cEmpAnt+"' company_code, C6_ITEM line, C6_PRODUTO sku_code, C6_QTDVEN quantity, (C6_QTDVEN - C6_QTDENT) balance,"	+ CRLF
+		cQrPED += "	C6_ENTREG date_delivery2, C6_ZENTRE2 date_delivery, ' ' order_status "											+ CRLF
+		cQrPED += "FROM "+ RetSqlName('SA1') +' SA1, '																				+ CRLF
+		cQrPED += 	RetSqlName('ACY') + ' ACY, '																					+ CRLF
+		cQrPED +=   RetSqlName('SC6') + ' SC6,' 																					+ CRLF
+		cQrPED += 	RetSqlName('SC5') + ' SC5,' 																					+ CRLF
+		cQrPED += 	RetSqlName('SF4') + ' SF4 ' 																					+ CRLF
+		cQrPED += "	WHERE SC6.C6_FILIAL = SC5.C5_FILIAL" 																			+ CRLF
+		cQrPED += "	AND SC6.C6_NUM 		= SC5.C5_NUM" 																				+ CRLF
+		cQrPED += "	AND SC6.C6_TES 		= SF4.F4_CODIGO" 																			+ CRLF
+		cQrPED += "	AND SF4.F4_ESTOQUE	= 'S'" 																						+ CRLF
+
+		If IsInCallStack("U_STAPIMANUAL")
+			cQrPED += " AND SC5.C5_EMISSAO  BETWEEN '"+DtoS(dDataDe)+"' AND '"+ DtoS(dDataAte)+"'"									+ CRLF
+		Else
+			cQrPED += " AND SC5.R_E_C_N_O_  BETWEEN '"+cValtochar(nRecno)+"' AND '"+ cValTochar(nRecno+100)+"'"						+ CRLF
+		Endif
+
+		cQrPED += "	AND SC5.C5_CLIENTE 	= SA1.A1_COD" 																				+ CRLF
+		cQrPED += "	AND SC5.C5_LOJAENT 	= SA1.A1_LOJA" 																				+ CRLF
+		cQrPED += "	AND SA1.A1_GRPVEN 	= ACY_GRPVEN"								 												+ CRLF
+		cQrPED += "	AND SA1.D_E_L_E_T_	=' '" 																						+ CRLF
+		cQrPED += "	AND ACY.D_E_L_E_T_	=' '"										 												+ CRLF
+		cQrPED += "	AND SC6.D_E_L_E_T_	=' '" 																						+ CRLF
+		cQrPED += "	AND SC5.D_E_L_E_T_	=' '" 																						+ CRLF
+		cQrPED += "	AND SF4.D_E_L_E_T_	=' '" 																						+ CRLF
+		cQrPED += "	ORDER BY  SC5.R_E_C_N_O_, SC6.C6_NUM, SC6.C6_ITEM"																+ CRLF
+
+		TCQuery cQrPED  New Alias (cAliasPed:=GetNextAlias())
+
+		dbSelectArea(cAliasPed)
+
+		(cAliasPed)->(dbGoTop())
+
+		nTimeOut := 1200
+
+		If Select(cAliasPed) > 0
+			nRecnoAtu	:=	(cAliasPed)->RECNO
+		EndIf
+
+		If nRecnoAtu > 0
+
+			cBody:='[ '
+
+			While !(cAliasPed)->(Eof())
+
+				If Empty((cAliasPed)->date_delivery)
+					cDtEntrega	:= SubStr(FWTimeStamp(3,Stod((cAliasPed)->date_delivery2)),1,10)
+				Else
+					cDtEntrega	:= SubStr(FWTimeStamp(3,Stod((cAliasPed)->date_delivery)),1,10)
+				EndIf
+
+				cDtPed		:= SubStr(FWTimeStamp(3,Stod((cAliasPed)->date_request)),1,10)
+
+				If !(cNumPed	==	Alltrim((cAliasPed)->code))
+					cBody+=' {'
+					cBody+='	"details":['																			+ CRLF
+				EndIf
+
+				cBody+='   		{'																						+ CRLF
+				cBody+='			"sku_code": "' 		+ Alltrim((cAliasPed)->sku_code) +'",'							+ CRLF
+				cBody+='			"line": "' 			+ Alltrim((cAliasPed)->line)+'",'								+ CRLF
+				cBody+='			"date_delivery": "' + Alltrim(cDtEntrega) +'",'										+ CRLF
+				cBody+='			"quantity": "' 		+ Alltrim(CValToChar((cAliasPed)->quantity)) +'",'				+ CRLF//NUMERICO
+				cBody+='			"balance": "' 		+ Alltrim(CValToChar((cAliasPed)->balance)) +'",'				+ CRLF//NUMERICO
+				cBody+='			"order_status": "' 	+ Alltrim((cAliasPed)->order_status) +'"'						+ CRLF
+				cBody+='   		}'
+
+				cCompany_code        	:=  Alltrim((cAliasPed)->company_code)
+				cCode                	:=  Alltrim((cAliasPed)->code)
+				cChannel_code_level_1	:=  Alltrim((cAliasPed)->channel_code_level_1)
+				cChannel_code_level_2 	:=  Alltrim((cAliasPed)->channel_code_level_2)
+				cChannel_code_level_3	:=  Alltrim((cAliasPed)->channel_code_level_3)
+				cChannel_code_level_4  	:=  Alltrim((cAliasPed)->channel_code_level_4)
+
+				cNumPed	:=	Alltrim((cAliasPed)->code)
+
+				If IsInCallStack("U_STAPIMANUAL")
+					cMsg := "Gerando lote para envio.." + cNumPed
+					oGrid:SetIncMeter(1,cMsg)
+					ProcessMessages()
+				EndIf
+
+				nRecno	:=	(cAliasPed)->RECNO
+
+				nRecGrv :=	(cAliasPed)->RECNO
+
+				(cAliasPed)->(dbskip())
+
+				If cNumPed	==	Alltrim((cAliasPed)->code)
+
+					If !(cAliasPed)->(Eof())
+						cBody+='  ,'
+					EndIf
+					Loop
+				Else
+					If !(cNumPed	==	Alltrim((cAliasPed)->code))
+
+						cBody+='  ],'				+ CRLF
+
+						DO CASE
+						CASE  cChannel_code_level_3 $ 'DF|GO|MT|MS'
+							cRegiao	:=	'C'
+						CASE  cChannel_code_level_3 $ 'AL|BA|CE|MA|PB|PE|PI|RN|SE'
+							cRegiao := 'NE'
+						CASE  cChannel_code_level_3 $ 'AC|AP|AM|PA|RO|RR|TO|'
+							cRegiao := 'N'
+						CASE  cChannel_code_level_3 $ 'ES|MG|RJ|SP'
+							cRegiao := 'SE'
+						CASE  cChannel_code_level_3 $ 'EX'
+							cRegiao := 'EX'
+						OTHERWISE
+							cRegiao := 'S'
+						END CASE
+
+						cBody+='"company_code": "'				+ cCompany_code +'",'			+ CRLF
+						cBody+='    "code": "'					+ cCode +'",'					+ CRLF
+						cBody+='    "date_request":"'			+ cDtPed +'",'					+ CRLF 				//FORMATO "2019-03-01",
+						cBody+='    "channel_code_level_1": "'	+ cChannel_code_level_1 +'",'	+ CRLF
+						cBody+='    "channel_code_level_2": "'	+ cChannel_code_level_2 +'",'	+ CRLF
+						cBody+='    "channel_code_level_3": "'	+ cRegiao +'",'					+ CRLF
+						cBody+='    "channel_code_level_4": "'	+ cChannel_code_level_4 +'"'		+ CRLF
+
+						cBody+=' }'																+ CRLF
+					EndIf
+
+				EndIf
+
+				If !(cAliasPed)->(Eof())
+					cBody+=','+ CRLF
+				EndIf
+
+			EndDo
+
+			cBody+=']'
+
+			(cAliasPed)->(DBCLOSEAREA())
+
+			cBody	:=	FwNoAccent(cBody)
+
+			If IsInCallStack("U_STAPIMANUAL")
+				cMsg := "Enviando lote para API.." + cNumPed
+				oGrid:SetIncMeter(1,cMsg)
+				ProcessMessages()
+				nRecno	:=	0
+			EndIf
+
+			sPostRet := HttpPost(cUrl,,EncodeUTF8(cBody),nTimeOut,aHeadOut,@cHeadRet)
+
+			oRet:=JsonObject():New()
+			oRet:FromJson(sPostRet)
+
+			If nRecnoAtu	==	0
+				nRecno	:=	0
+			EndIf
+
+			If !Empty(DtoS(dDataDe))
+				dDataDe := cTod('//')
+			EndIf
+
+			If oRet["title"] <> 'Accepted'
+				cRet	:= cValtochar(oRet["status"]) +' - '+oRet["title"] + CRLF
+				cRet	+= oRet["detail"]+ CRLF
+
+				cMsg	:= 'Função STAPIPEDIDOS-' + Time()+" Erro no envio:" 	+	CRLF
+				cMsg	+= cRet						+	CRLF
+				cMsg	+= "Json com problema:"		+ 	CRLF
+				cMsg	+= cBody					+ 	CRLF
+
+				U_STAPILOG(cMsg,"STAPIPEDIDOS")
+			Else
+
+				cUrlRet	:= 	oRet["_links"]["job"]["href"]
+
+				cMsg	:=	"Sucesso no envio do lote"
+
+				PutMv("ST_PRXREPV",nRecGrv)
+
+				U_STAPILOG(cMsg,"STAPIPROD")
+
+				If !IsInCallStack("U_STAPIMANUAL")
+					STAPIREPOST(cUrlRet,cToken)
+				Endif
+
+			EndIf
+
+			cMsg	:= Time()+"- Proximo Recno " + cValtoChar(nRecno)
+
+			U_STAPILOG(cMsg,"STAPIPEDIDOS")
+		Else
+
+			If IsInCallStack("U_STAPIMANUAL") .And. !Empty(dDataAte)
+				FWAlertHelp( "Sem dados para integrar", 'Escolha outro periodo' )
+				nRecno := 0
+			EndIf
+
+			(cAliasPed)->(DBCLOSEAREA())
+
+		EndIf
+	EndDo
+
+Return
+
+
+//*****************************************************************
+/*/{Protheus.doc} STAPIFAT
+	Função responsável pelo envio dos dados de faturamenot para S&OP 
+	Colplan
+	@type function
+	@version  1.00
+	@author Rogério Costa | CRM Services 
+	@since 03/11/2022 
+	@param cToken, character, Token de acesso a API
+	@param oGrid, object, Atualiza mensagens para usuário
+/*/
+//*****************************************************************
+User Function STAPIFAT(cToken,oGrid)
+
+	Local nTimeOut  := 120
+	Local aHeadOut  := {}
+	Local cHeadRet  := ""
+	Local cUrlApi   := ""
+	Local cPath 	:= "/async/invoices/channel-hierarchy"
+	Local cBody		:=	''
+	Local sPostRet	:=	''
+	Local cRet		:=	''
+	Local oRet
+	Local cQrFat	:=	''
+	Local cAliasFat	:=	''
+	Local cRegiao 	:= ''
+	Local nRecno 	:= 1
+	Local nRecnoAtu	:= 0
+	Local cNumNf	:=""
+	Local cDtFat	:=""
+	Local dDataDe
+	Local dDataAte
+	Local cDtAte	:= ""
+	Local aParamBox := {}
+	Local aRet		:= {}
+	Local cEmp		:= '11'
+	Local cFil		:= '01'
+	Local cUrl		:= ""
+	Local nRecGrv	:=	0
+
+	If !IsInCallStack("U_STAPIEXEC")
+
+		If Select("SX2") == 0
+			PREPARE ENVIRONMENT EMPRESA cEmp FILIAL cFil
+		EndIf
+
+		cDtDe	:=	"20220101"
+		cDtAte	:=	Dtos(dDatabase)
+
+	EndIf
+
+	dDataDe   := FirstDate(dDataBase)
+	dDataAte  := LastDate(dDataBase)
+
+	If IsInCallStack("U_STAPIMANUAL")
+		aAdd( aParamBox,	{1,		"Data De"		,dDataDe	,""		,"MV_PAR01 <= ddatabase"		,""		,""		,50		,.F.})
+		aAdd( aParamBox,	{1,		"Data Até"		,dDataAte	,""		,"MV_PAR02 <= ddatabase"		,""		,""		,50		,.T.})
+
+		If !ParamBox(aParamBox, "DATA DE EMISSÃO",aRet)
+			Return Nil
+		Else
+			cDtDe	:=	Dtos(aRet[1])
+			cDtAte	:=	Dtos(aRet[2])
+		EndIf
+	Else
+		nRecno      := SuperGetMv("ST_PRXREFT",,1)
+	EndIf
+
+	cUrlApi   := SuperGetMv("ST_URLCOLP",,"https://homo-steck-colplan.ve3.com.br/api")
+
+	cUrl      := cUrlApi+cPath
+
+	If Empty(cToken)
+		cToken	:=	STAPITOKEN()
+	EndIf
+
+	Aadd(aHeadOut,'Authorization: Bearer '+cToken)
+	Aadd(aHeadOut,'Content-Type: application/json')
+	Aadd(aHeadOut,'Accept: application/json')
+	AAdd(aHeadOut, "User-Agent: Chrome/65.0 (compatible; Protheus " + GetBuild() + ")")
+
+	While nRecno > 0
+
+		cQrFat := " SELECT SF2.R_E_C_N_O_ RECNO, D2_PEDIDO code, D2_COD sku_code,"										+ CRLF
+		cQrFat += "  ACY_GRPVEN channel_code_level_1, A1_XESCALA channel_code_level_2, A1_EST channel_code_level_3,"	+ CRLF
+		cQrFat += "  A1_COD||A1_LOJA channel_code_level_4, sum(D2_QUANT) quantity, F2_EMISSAO cdate, D2_SERIE||D2_DOC order_code"		+ CRLF
+		cQrFat += "FROM "+ RetSqlName('SA1') +' SA1, ' 																	+ CRLF
+		cQrFat +=			RetSqlName('ACY') + ' ACY, '																+ CRLF
+		cQrFat +=  			RetSqlName('SD2') + ' SD2,' 																+ CRLF
+		cQrFat +=			RetSqlName('SF2') + ' SF2, ' 																+ CRLF
+		cQrFat +=			RetSqlName('SF4') + ' SF4 ' 																+ CRLF
+		cQrFat += "	WHERE SD2.D2_FILIAL = SF2.F2_FILIAL" 																+ CRLF
+		cQrFat += "	AND SD2.D2_DOC 		= SF2.F2_DOC" 																	+ CRLF
+		cQrFat += "	AND SD2.D2_SERIE 	= SF2.F2_SERIE" 																+ CRLF
+		cQrFat += "	AND SD2.D2_CLIENTE 	= SF2.F2_CLIENTE"																+ CRLF
+		cQrFat += "	AND SD2.D2_LOJA 	= SF2.F2_LOJA"																	+ CRLF
+		cQrFat += "	AND SD2.D2_TES 		= SF4.F4_CODIGO"																+ CRLF
+		cQrFat += "	AND SF4.F4_ESTOQUE	= 'S'"																			+ CRLF
+
+		If !Empty(cDtAte)
+			cQrFat += " AND SF2.F2_EMISSAO BETWEEN '"+cDtDe+"' AND '"+ cDtAte+"'"				+ CRLF
+		Else
+			cQrFat += " AND SF2.R_E_C_N_O_  BETWEEN '"+cValtochar(nRecno)+"' AND '"+ cValTochar(nRecno+200)+"'"				+ CRLF
+		EndIf
+
+		cQrFat += "	AND SF2.F2_CLIENTE 	= SA1.A1_COD" 																	+ CRLF
+		cQrFat += "	AND SF2.F2_LOJA 	= SA1.A1_LOJA" 																	+ CRLF
+		cQrFat += "	AND SA1.A1_GRPVEN 	= ACY_GRPVEN"								 									+ CRLF
+		cQrFat += "	AND SA1.D_E_L_E_T_	=' '" 																			+ CRLF
+		cQrFat += "	AND ACY.D_E_L_E_T_	=' '"										 									+ CRLF
+		cQrFat += "	AND SD2.D_E_L_E_T_	=' '" 																			+ CRLF
+		cQrFat += "	AND SF2.D_E_L_E_T_	=' '" 																			+ CRLF
+		cQrFat += "	AND SF4.D_E_L_E_T_	=' '" 																			+ CRLF
+		cQrFat += " GROUP BY SF2.R_E_C_N_O_ , D2_SERIE||D2_DOC, D2_PEDIDO , D2_COD ,  ACY_GRPVEN , A1_XESCALA , A1_EST ,  A1_COD||A1_LOJA ,  F2_EMISSAO " + CRLF
+		cQrFat += " ORDER BY SF2.R_E_C_N_O_ " + CRLF
+
+		TCQuery cQrFat  New Alias (cAliasFat:=GetNextAlias())
+
+		dbSelectArea(cAliasFat)
+
+		(cAliasFat)->(dbGoTop())
+
+		nTimeOut := 1200
+
+		If Select(cAliasFat) > 0
+			nRecnoAtu	:=	(cAliasFat)->RECNO
+		EndIf
+
+		If nRecnoAtu > 0
+
+			cBody:='[ '
+
+			While (cAliasFat)->(!Eof())
+
+				cDtFat		:= SubStr(FWTimeStamp(3,Stod((cAliasFat)->cdate)),1,10)
+
+				If !(cNumNf	==	Alltrim((cAliasFat)->code))
+					cBody+=' {'
+					cBody+='	"order_code":"'+Alltrim((cAliasFat)->code)+'",'							+ CRLF
+					cBody+='	"details":['																	+ CRLF
+				EndIf
+
+				cBody+='   		{'																				+ CRLF
+				cBody+='			"sku_code": "' 		+ Alltrim((cAliasFat)->sku_code) +'",'					+ CRLF
+				cBody+='			"quantity": "' 		+ Alltrim(CValToChar((cAliasFat)->quantity)) +'"'		+ CRLF//NUMERICO
+				cBody+='   		}'
+
+				cCode                	:=  Alltrim((cAliasFat)->order_code)
+				cChannel_code_level_1	:=  Alltrim((cAliasFat)->channel_code_level_1)
+				cChannel_code_level_2 	:=  Alltrim((cAliasFat)->channel_code_level_2)
+				cChannel_code_level_3	:=  Alltrim((cAliasFat)->channel_code_level_3)
+				cChannel_code_level_4  	:=  Alltrim((cAliasFat)->channel_code_level_4)
+
+				If IsInCallStack("U_STAPIMANUAL")
+					cMsg := "Gerando Lote Faturamento para API.." + Alltrim((cAliasFat)->code)
+					oGrid:SetIncMeter(1,cMsg)
+					ProcessMessages()
+				EndIf
+
+				cNumNf	:=	Alltrim((cAliasFat)->code)
+
+				nRecno	:=	(cAliasFat)->RECNO
+
+				nRecGrv	:=	(cAliasFat)->RECNO
+
+				(cAliasFat)->(dbskip())
+
+				If cNumNf	==	Alltrim((cAliasFat)->code)
+
+					If !(cAliasFat)->(Eof())
+						cBody+='  ,'
+					EndIf
+					Loop
+				Else
+					If !(cNumNf	==	Alltrim((cAliasFat)->code))
+
+						cBody+='  ],'				+ CRLF
+
+						DO CASE
+						CASE  cChannel_code_level_3 $ 'DF|GO|MT|MS'
+							cRegiao	:=	'C'
+						CASE  cChannel_code_level_3 $ 'AL|BA|CE|MA|PB|PE|PI|RN|SE'
+							cRegiao := 'NE'
+						CASE  cChannel_code_level_3 $ 'AC|AP|AM|PA|RO|RR|TO|'
+							cRegiao := 'N'
+						CASE  cChannel_code_level_3 $ 'ES|MG|RJ|SP'
+							cRegiao := 'SE'
+						CASE  cChannel_code_level_3 $ 'EX'
+							cRegiao := 'EX'
+						OTHERWISE
+							cRegiao := 'S'
+						END CASE
+
+						cBody+='    "date":"'			+ cDtFat 	+'",'					+ CRLF 				//FORMATO "2019-03-01",
+						cBody+='    "code": "'					+ cCode 	+'",'					+ CRLF
+						cBody+='    "invoice_status": "'		+ "" 		+'",'					+ CRLF
+						cBody+='    "channel_code_level_1": "'	+ cChannel_code_level_1 +'",'	+ CRLF
+						cBody+='    "channel_code_level_2": "'	+ cChannel_code_level_2 +'",'	+ CRLF
+						cBody+='    "channel_code_level_3": "'	+ cRegiao +'",'					+ CRLF
+						cBody+='    "channel_code_level_4": "'	+ cChannel_code_level_4 +'"'		+ CRLF
+
+						cBody+=' }'																+ CRLF
+					EndIf
+
+				EndIf
+
+				If !(cAliasFat)->(Eof())
+					cBody+=','+ CRLF
+				EndIf
+
+			EndDo
+
+			cBody+=']'
+
+			(cAliasFat)->(DBCLOSEAREA())
+
+			cBody	:=	FwNoAccent(cBody)
+
+			If IsInCallStack("U_STAPIMANUAL")
+				cMsg := "Enviando Lote Faturamento para API.."
+				oGrid:SetIncMeter(1,cMsg)
+				ProcessMessages()
+				nRecno :=	0
+				cDtAte 	:=""
+			EndIf
+
+			sPostRet := HttpPost(cUrl,,EncodeUTF8(cBody),nTimeOut,aHeadOut,@cHeadRet)
+
+			oRet:=JsonObject():New()
+			oRet:FromJson(sPostRet)
+
+			If nRecnoAtu	==	0
+				nRecno	:=	0
+			EndIf
+
+			If oRet["title"] <> 'Accepted'
+				cRet	:= cValtochar(oRet["status"]) +' - '+oRet["title"] + CRLF
+				cRet	+= oRet["detail"]+ CRLF
+
+				cMsg	:= 'Função STAPIFAT-' + Time()+" Erro no envio:" 	+	CRLF
+				cMsg	+= cRet						+	CRLF
+				cMsg	+= "Json com problema:"		+ 	CRLF
+				cMsg	+= cBody					+ 	CRLF
+
+				U_STAPILOG(cMsg,"STAPIFAT",1)
+			Else
+
+				cUrlRet	:= 	oRet["_links"]["job"]["href"]
+
+				cMsg	:=	"Sucesso no envio do lote"
+
+				PutMV("ST_PRXREFT",nRecGrv)
+
+				U_STAPILOG(cMsg,"STAPIPROD")
+				If !IsInCallStack("U_STAPIMANUAL")
+					STAPIREPOST(cUrlRet,cToken)
+				Endif
+
+			EndIf
+
+			cNumNf	:= ""
+
+			cMsg	:= Time()+"STAPIFAT - Proximo Recno " + cValtoChar(nRecno)
+
+			U_STAPILOG(cMsg,"STAPIFAT")
+
+		Else
+
+			If IsInCallStack("U_STAPIMANUAL") .And. !Empty(cDtDe)
+				FWAlertHelp( "Sem dados para integrar", 'Escolha outro cliente ou periodo' )
+			EndIf
+
+			nRecnoAtu	:=	nRecno+200
+		EndIf
+
+		If !Empty(cDtDe)
+			nRecno := 0
+
+		EndIf
+
+		If Select(cAliasFat) > 0
+			(cAliasFat)->(DBCLOSEAREA())
+		EndIf
+
+	EndDo
+
+Return
+
+
+//*****************************************************************
+/*/{Protheus.doc} STAPIPRECO
+	Função responsável pelo envio de dados de preço médio para S&OP 
+	Colplan
+	@type function
+	@version  1.00
+	@author Rogério Costa | CRM Services 
+	@since 20/11/2022 
+	@param cToken, character, Token de acesso a API
+	@param oGrid, object, Atualiza mensagens para usuário
+/*/
+//*****************************************************************
+User Function STAPIPRECO(cToken,oGrid)
+
+	Local nTimeOut  := 120
+	Local aHeadOut  := {}
+	Local cHeadRet  := ""
+	Local cUrlApi   := ""
+	Local cPath 	:= "/async/financial-data"
+	Local cBody	:=	''
+	Local sPostRet	:=	''
+	Local cQrPreco	:=	''
+	Local cAliasPreco:=	''
+	Local nRecno		:= 1
+	Local nRecnoAtu		:= 0
+	Local cPeriod_start	:= ''
+	Local cPeriod_end	:= ''
+	Local aArea
+	Local nPrcVen	:= 0
+	Local aParamBox	:=	{}
+	Local aRet		:=	{}
+	Local dDataAte
+	Local dDataDe
+	Local cEmp		:= '11'
+	Local cFil		:= '01'
+	Local cDtDe 	:= ""
+	Local cDtAte 	:= ""
+	Local cUrl		:= ""
+	Local nTotal	:= 0
+	Local nAtu		:= 1
+
+	If !IsInCallStack("U_STAPIEXEC")
+
+		If Select("SX2") == 0
+			PREPARE ENVIRONMENT EMPRESA cEmp FILIAL cFil
+		EndIf
+	EndIf
+
+	aArea		:= Lj7GetArea({"SD2"})
+	dDataAte	:=	CtoD("//")
+	dDataDe		:=	CtoD("//")
+
+	If Empty(cToken)
+		cToken	:=	STAPITOKEN()
+	EndIf
+
+	If IsInCallStack("U_STAPIMANUAL")
+
+		aAdd( aParamBox,	{1,		"Dt.Faturamento De"	,dDataDe,""		,"MV_PAR01 <= ddatabase"		,""		,""		,50		,.T.})
+		aAdd( aParamBox,	{1,		"Dt.Faturamento Até",dDataAte,""	,"MV_PAR02 <= ddatabase"		,""		,""		,50		,.T.})
+
+		If !ParamBox(aParamBox, "Seleção de Data de Emissão", aRet)
+			Return Nil
+		Else
+			cDtDe 	:= DtoS(aRet[1])
+			cDtAte 	:= DtoS(aRet[2])
+
+		EndIf
+	EndIf
+
+	cUrlApi   := SuperGetMv("ST_URLCOLP",,"https://homo-steck-colplan.ve3.com.br/api")
+
+	cUrl      := cUrlApi+cPath
+
+	Aadd(aHeadOut,'Authorization: Bearer '+cToken)
+	Aadd(aHeadOut,'Content-Type: application/json')
+	Aadd(aHeadOut,'Accept: application/json')
+	AAdd(aHeadOut, "User-Agent: Chrome/65.0 (compatible; Protheus " + GetBuild() + ")")
+
+	nTimeOut := 1200
+
+	dbSelectArea("SD2")
+
+	While nRecno > 0
+
+		If IsInCallStack("U_STAPIMANUAL")
+			cMsg := "Consultando registros Preço para API.."
+			oGrid:SetIncMeter(1,cMsg)
+			ProcessMessages()
+		EndIf
+
+		cQrPreco := "SELECT SUBSTRING(D2_EMISSAO,1,6) ANOMES,"				+ CRLF
+		cQrPreco += "		ACY_GRPVEN channel_code_level_1,"			+ CRLF
+		cQrPreco += "		A1_XESCALA channel_code_level_2, "			+ CRLF
+		cQrPreco += "		A1_EST channel_code_level_3, "				+ CRLF
+
+		cQrPreco += "		D2_CLIENTE||D2_LOJA channel_code_level_4,"	+ CRLF
+		cQrPreco += "		D2_COD sku_code,"							+ CRLF
+		cQrPreco += "		MAX(SD2.R_E_C_N_O_) R_E_C_N_O_"				+ CRLF
+		cQrPreco += "FROM "+RetSqlName("SD2") + " SD2, " 				+ CRLF
+		cQrPreco += 		RetSqlName("SA1") + " SA1, "  				+ CRLF
+		cQrPreco += 		RetSqlName("ACY")+ " ACY,"					+ CRLF
+		cQrPreco += 		RetSqlName("SF4")+ " SF4 "					+ CRLF
+		cQrPreco += "WHERE D2_COD > ' '"								+ CRLF
+		cQrPreco += "	AND D2_CLIENTE = A1_COD"						+ CRLF
+		cQrPreco += "	AND D2_LOJA = A1_LOJA"							+ CRLF
+
+		If IsInCallStack("U_STAPIMANUAL")
+			cQrPreco += "	AND SD2.D2_EMISSAO BETWEEN '"+ cDtDe +"' AND '"+ cDtAte+"'" + CRLF
+		Else
+			cQrPreco += "	AND SD2.R_E_C_N_O_ BETWEEN "+ cValtochar(nRecno)+" AND "+ cValtochar(nRecno+1000) + CRLF
+		EndIf
+
+		cQrPreco += "	AND SD2.D2_TES = SF4.F4_CODIGO"					+ CRLF
+		cQrPreco += "	AND SF4.F4_ESTOQUE = 'S'"						+ CRLF
+		cQrPreco += "	AND SA1.A1_GRPVEN = ACY_GRPVEN	"							+ CRLF
+		cQrPreco += "	AND SD2.D_E_L_E_T_ =' '"									+ CRLF
+		cQrPreco += "	AND SA1.D_E_L_E_T_ =' '"									+ CRLF
+		cQrPreco += "	AND ACY.D_E_L_E_T_ =' '"									+ CRLF
+		cQrPreco += "	AND SF4.D_E_L_E_T_ =' '"									+ CRLF
+		cQrPreco += "GROUP BY SUBSTRING(D2_EMISSAO,1,6), D2_CLIENTE||D2_LOJA,  D2_COD, A1_EST,A1_XESCALA,ACY_GRPVEN"+ CRLF
+		cQrPreco += "ORDER BY SUBSTRING(D2_EMISSAO,1,6), D2_CLIENTE||D2_LOJA, D2_COD ,A1_EST,A1_XESCALA,ACY_GRPVEN"+ CRLF
+
+		cQrPreco	:=	ChangeQuery(cQrPreco)
+
+		TCQuery cQrPreco  New Alias (cAliasPreco:=GetNextAlias())
+
+		dbSelectArea(cAliasPreco)
+
+		Count To nTotal
+
+		(cAliasPreco)->(dbGoTop())
+
+		If Select(cAliasPreco) > 0
+			nRecnoAtu	:=	(cAliasPreco)->R_E_C_N_O_
+			cAnoMes		:=	(cAliasPreco)->ANOMES
+		EndIf
+
+		If nRecnoAtu > 0
+
+			While !(cAliasPreco)->(Eof())
+
+				If IsInCallStack("U_STAPIMANUAL")
+					cMsg := "Gerando lote de preços para envio.."  + cAnoMes +"|"+ (cAliasPreco)->sku_code +" registro " + cValToChar(nAtu) + " de " + cValToChar(nTotal)
+					oGrid:SetIncMeter(1,cMsg)
+					ProcessMessages()
+				EndIf
+
+				If cAnoMes == (cAliasPreco)->ANOMES
+
+					If Empty(cBody)
+						cBody:='{ "data":['																		+ CRLF
+					EndIf
+
+					dDataIni	:=	FIRSTDATE(STOD(SUBSTR(cAnoMes,1,4)+SUBSTR(cAnoMes,5,2)+'01'))
+					dDataFim	:=	LASTDATE(dDataIni)
+
+					cPeriod_start	:= SubStr(FWTimeStamp(3,dDataIni),1,10)
+
+					cPeriod_end		:= SubStr(FWTimeStamp(3,dDataFim),1,10)
+
+					SD2->(dbGoto((cAliasPreco)->R_E_C_N_O_))
+
+					nPrcVen	:= SD2->D2_PRCVEN
+
+					DO CASE
+					CASE  Alltrim((cAliasPreco)->channel_code_level_3) $ 'DF|GO|MT|MS'
+						cRegiao	:=	'C'
+					CASE  Alltrim((cAliasPreco)->channel_code_level_3) $ 'AL|BA|CE|MA|PB|PE|PI|RN|SE'
+						cRegiao := 'NE'
+					CASE  Alltrim((cAliasPreco)->channel_code_level_3) $ 'AC|AP|AM|PA|RO|RR|TO|'
+						cRegiao := 'N'
+					CASE  Alltrim((cAliasPreco)->channel_code_level_3) $ 'ES|MG|RJ|SP'
+						cRegiao := 'SE'
+					CASE  Alltrim((cAliasPreco)->channel_code_level_3) $ 'EX'
+						cRegiao := 'EX'
+					OTHERWISE
+						cRegiao := 'S'
+					END CASE
+
+					cBody+=			'{'																		+ CRLF
+					cBody+='"sku_code": "' 		+ (cAliasPreco)->sku_code  +'",' 							+ CRLF
+					cBody+='"channel_code_level_1":"'	+ Alltrim((cAliasPreco)->channel_code_level_1) +'",'+ CRLF
+					cBody+='"channel_code_level_2": "'	+ Alltrim((cAliasPreco)->channel_code_level_2) +'",'+ CRLF
+					cBody+='"channel_code_level_3":"'	+  cRegiao +'",'									+ CRLF
+					cBody+='"channel_code_level_4": "' 	+ Alltrim((cAliasPreco)->channel_code_level_4) +'",'+ CRLF
+					cBody+='"price":'					+ Alltrim(CValToChar(nPrcVen)) 						+ CRLF
+					cBody+=				'}'																	+ CRLF
+
+					nRecno	:=	(cAliasPreco)->R_E_C_N_O_+1
+
+					cAnoMes := (cAliasPreco)->ANOMES
+
+					nAtu := nAtu + 1
+
+					(cAliasPreco)->(dbSkip())
+
+					If !(cAliasPreco)->(Eof()) .And. cAnoMes == (cAliasPreco)->ANOMES
+						cBody+=','
+						Loop
+					Else
+
+						cBody	+=				'],'															+ CRLF
+
+						cBody	+='"parameters":'																+ CRLF
+						cBody	+=				"{"																+ CRLF
+						cBody	+=				'"period_start": "'	+ Alltrim(cPeriod_start) +'"'+","			+ CRLF
+						cBody	+=				'"period_end": "'	+ Alltrim(cPeriod_end) +'"'					+ CRLF
+						cBody	+=				'}'+ CRLF
+
+						cBody+='}'
+
+						cBody		:=	FwNoAccent(cBody)
+
+						sPostRet	:= HttpPost(cUrl,,EncodeUTF8(cBody),nTimeOut,aHeadOut,@cHeadRet)
+
+						nAtu		:= 1
+
+						oRet		:=JsonObject():New()
+						oRet		:FromJson(sPostRet)
+
+						If oRet["title"] <> 'Accepted'
+							cRet	:= cValtochar(oRet["status"]) +' - '+oRet["title"] + CRLF
+							cRet	+= oRet["detail"]+ CRLF
+
+							cMsg	:= "Função STAPIPRECO -"+ Time()+" Erro no envio:" 	+	CRLF
+							cMsg	+= cRet						+	CRLF
+							cMsg	+= "Json com problema:"		+ 	CRLF
+							cMsg	+= cBody					+ 	CRLF
+
+							U_STAPILOG(cMsg,"STAPIPRECO")
+						Else
+
+							cUrlRet	:= 	oRet["_links"]["job"]["href"]
+
+							cMsg	:=	"Sucesso no envio do lote"
+
+							U_STAPILOG(cMsg,"STAPIPROD")
+
+							If !IsInCallStack("U_STAPIMANUAL")
+								STAPIREPOST(cUrlRet,cToken)
+							Endif
+
+
+						EndIf
+
+						cMsg	:= Time()+" - STAPIPRECO - Proximo Recno " + cValtoChar(nRecno)
+
+						U_STAPILOG(cMsg,"STAPIPRECO")
+
+						cBody	:=	''
+						cAnoMes := (cAliasPreco)->ANOMES
+						Loop
+					EndIf
+				EndIf
+
+			EndDo
+
+			(cAliasPreco)->(DBCLOSEAREA())
+
+			If !Empty(cDtAte)
+				cDtAte 	:=""
+				nRecno	:=	0
+			Else
+				nRecno	:=	nRecno+1000
+			EndIf
+
+		Else
+			cMsg	:= Time()+" - STAPIPRECO - Fim do Processamento "
+
+			U_STAPILOG(cMsg,"STAPIPRECO")
+
+			If IsInCallStack("U_STAPIMANUAL") .And. !Empty(cDtAte)
+				FWAlertHelp( "Sem dados para integrar", 'Escolha outro periodo' )
+
+			EndIf
+
+			Return
+
+		EndIf
+	EndDo
+
+	Lj7RestArea(aArea)
+
+Return
+
+//*****************************************************************
+/*/{Protheus.doc} STAPIESTOQUE
+	Função responsável pelo envio de dados de estoque para S&OP 
+	Colplan
+	@type function
+	@version  1.00
+	@author Rogério Costa | CRM Services 
+	@since 23/11/2022 
+	@param cToken, character, Token de acesso a API
+	@param oGrid, object, Atualiza mensagens para usuário
+/*/
+//*****************************************************************
+User Function STAPIESTOQUE(cToken,oGrid)
+
+	Local nTimeOut  := 120
+	Local aHeadOut  := {}
+	Local cHeadRet  := ""
+	Local cUrlApi   := ""
+	Local cPath 	:= "/async/inventories"
+	Local cBody		:=	''
+	Local sPostRet	:=	''
+	Local cQrEst	:=	''
+	Local cAliasEst	:=	''
+	Local cRet		:=	''
+	Local oRet
+	Local nRecno	:= 1
+	Local nRecnoAtu	:= 0
+	Local aSM0Data	:= {}
+	Local nQtd		:= 0
+	Local cEmp		:= '11'
+	Local cFil		:= '01'
+	Local cUrl		:= ""
+	Local nTotal	:=	0
+	Local nAtu		:=	1
+
+	If !IsInCallStack("U_STAPIEXEC")
+
+		If Select("SX2") == 0
+			PREPARE ENVIRONMENT EMPRESA cEmp FILIAL cFil
+		EndIf
+	EndIf
+
+	If Empty(cToken)
+		cToken	:=	STAPITOKEN()
+	EndIf
+
+	cUrlApi   := SuperGetMv("ST_URLCOLP",,"https://homo-steck-colplan.ve3.com.br/api")
+
+	cUrl         := cUrlApi+cPath
+
+	Aadd(aHeadOut,'Authorization: Bearer '+cToken)
+	Aadd(aHeadOut,'Content-Type: application/json')
+	Aadd(aHeadOut,'Accept: application/json')
+	AAdd(aHeadOut, "User-Agent: Chrome/65.0 (compatible; Protheus " + GetBuild() + ")")
+
+	nTimeOut := 1200
+
+	aSM0Data := FWSM0Util():GetSM0Data( cEmpAnt , cFilAnt , { "M0_CODIGO","M0_CGC","M0_CODFIL" } ) //Retorna o M0_CODFIL do grupo 99 e filial 01
+
+	While nRecno > 0
+
+		//armazem de venda 01 e 03
+
+		cQrEst := "SELECT SB1.R_E_C_N_O_ R_E_C_N_O_,B2_COD sku_code , B2_QATU-B2_QEMP-B2_RESERVA quantity, B2_LOCAL storehouse_code "+ CRLF
+		cQrEst += "FROM " + RetSqlName('SB2') + ' SB2, ' + CRLF
+		cQrEst += RetSqlName('SB1') + ' SB1' 			+ CRLF
+		cQrEst += "WHERE SB2.B2_COD = SB1.B1_COD"			+ CRLF
+		cQrEst += "AND SB2.B2_FILIAL = '01'" + CRLF
+		cQrEst += "AND SB2.B2_LOCAL IN ('01','03')" + CRLF
+//		cQrEst += "AND SB2.B2_COD IN ('CA2010AB','TESTECOPLAN')"			+ CRLF
+//		cQrEst += "AND SB1.R_E_C_N_O_ BETWEEN "+ cValtochar(nRecno)+" AND "+ cValtochar(nRecno+500) + CRLF
+		cQrEst += "AND SB1.B1_TIPO ='PA'"					+ CRLF
+		cQrEst += "AND SB1.D_E_L_E_T_=' '"				+ CRLF
+		cQrEst += "AND SB2.D_E_L_E_T_=' '"				+ CRLF
+		cQrEst += "ORDER BY SB1.R_E_C_N_O_ "	+ CRLF
+
+		TCQuery cQrEst  New Alias (cAliasEst:=GetNextAlias())
+
+		dbSelectArea(cAliasEst)
+		
+		Count To nTotal
+		
+		(cAliasEst)->(dbGoTop())
+
+		If Select(cAliasEst) > 0
+			nRecnoAtu	:=	(cAliasEst)->R_E_C_N_O_
+		EndIf
+
+		If nRecnoAtu > 0
+
+			cBody:='{ '
+
+			cBody+='"data":['																		+ CRLF
+
+			While !(cAliasEst)->(Eof())
+
+				nQtd	:=	(cAliasEst)->quantity
+
+				If nQtd < 0
+					nQtd := 0
+				EndIf
+
+				cBody+=			'{'																	+ CRLF
+				cBody+='"sales_organization_code":"'+ aSM0Data[1][2] +'",' 			+ CRLF
+				cBody+='"store_cnpj":"'				+ aSM0Data[2][2] +'",'							+ CRLF
+				cBody+='"store_code": "'			+ aSM0Data[1][2]+aSM0Data[3][2] +'",'							+ CRLF
+				cBody+='"storehouse_code":"'		+ Alltrim((cAliasEst)->storehouse_code) +'",'	+ CRLF
+				cBody+='"inventory_status":"L",'												 	+ CRLF
+				cBody+='"sku_code":"'				+ Alltrim(FwNoAccent((cAliasEst)->sku_code)) +'",'			+ CRLF
+				cBody+='"quantity":'				+ Alltrim(CValToChar(nQtd)) 	+ CRLF
+				cBody+=				'}'																+ CRLF
+
+				nRecno	:=	(cAliasEst)->R_E_C_N_O_+1
+
+				If IsInCallStack("U_STAPIMANUAL")
+					cMsg := "Gerando lote dos saldos em estoque para envio, registro " + cValToChar(nAtu) + " de " + cValToChar(nTotal)
+					oGrid:SetIncMeter(1,cMsg)
+					ProcessMessages()
+				EndIf
+
+				nAtu := nAtu + 1
+				
+				(cAliasEst)->(dbSkip())
+
+				If !(cAliasEst)->(Eof())
+					cBody+=','
+					Loop
+				EndIf
+
+				cBody+=				'],'															+ CRLF
+
+				cBody+='"parameters":'																+ CRLF
+				cBody+=				"{"																+ CRLF
+				cBody+=				'"clear_inventories_on_import": true'							+ CRLF
+				cBody+=				'}'+ CRLF
+
+			EndDo
+
+			cBody+='}'
+
+			(cAliasEst)->(DBCLOSEAREA())
+
+			nRecno	:=	0 // envia estoque uma vez por conexão..
+			nAtu 	:= 	1
+
+			//cBody	:=	FwNoAccent(cBody)
+
+			If IsInCallStack("U_STAPIMANUAL")
+				cMsg := "Enviando Lote..."
+				oGrid:SetIncMeter(1,cMsg)
+				ProcessMessages()
+			EndIf
+
+			sPostRet := HttpPost(cUrl,,EncodeUTF8(cBody),nTimeOut,aHeadOut,@cHeadRet)
+
+			oRet:=JsonObject():New()
+			oRet:FromJson(sPostRet)
+
+			If oRet["title"] <> 'Accepted'
+				cRet	:= cValtochar(oRet["status"]) +' - '+oRet["title"] + CRLF
+				cRet	+= oRet["detail"]+ CRLF
+
+				cMsg	:= "Função STAPIESTOQUE -"+ Time()+" Erro no envio:" 	+	CRLF
+				cMsg	+= cRet						+	CRLF
+				cMsg	+= "Json com problema:"		+ 	CRLF
+				cMsg	+= cBody					+ 	CRLF
+
+				U_STAPILOG(cMsg,"STAPIESTOQUE")
+			Else
+
+				cUrlRet	:= 	oRet["_links"]["job"]["href"]
+
+				cMsg	:=	"Sucesso no envio do lote"
+
+				U_STAPILOG(cMsg,"STAPIPROD")
+
+				If !IsInCallStack("U_STAPIMANUAL")
+					STAPIREPOST(cUrlRet,cToken)
+				Endif
+
+			EndIf
+
+			cMsg	:= Time()+" - STAPIESTOQUE - Proximo Recno " + cValtoChar(nRecno)
+
+			U_STAPILOG(cMsg,"STAPIESTOQUE")
+
+		Else
+			cMsg	:= Time()+" - STAPIESTOQUE - Fim do Processamento "
+
+			U_STAPILOG(cMsg,"STAPIESTOQUE")
+
+			Return
+
+		EndIf
+	EndDo
+
+Return
+
+
+//*****************************************************************
+/*/{Protheus.doc} STAPICUSTO
+	Função responsável pelo envio de dados de custo para S&OP 
+	Colplan
+	@type function
+	@version  1.00
+	@author Rogério Costa | CRM Services 
+	@since 23/11/2022 
+	@param cToken, character, Token de acesso a API
+	@param oGrid, object, Atualiza mensagens para usuário
+/*/
+//*****************************************************************
+User Function STAPICUSTO(cToken,oGrid)
+
+	Local nTimeOut  := 120
+	Local aHeadOut  := {}
+	Local cHeadRet  := ""
+	Local cUrlApi   := ""
+	Local cPath 	:= "/async/store-item-cost"
+	Local cBody		:=	''
+	Local sPostRet	:=	''
+	Local cQrCusto	:=	''
+	Local cAliasCusto	:=	''
+	Local cRet		:=	''
+	Local oRet
+	Local nRecno	:= 1
+	Local nRecnoAtu	:= 0
+	Local aSM0Data	:= {}
+	Local cEmp		:= '11'
+	Local cFil		:= '01'
+	Local cUrl		:= ""
+	Local nTotal	:=	0
+	Local nAtu		:=	1
+
+	If !IsInCallStack("U_STAPIEXEC")
+
+		If Select("SX2") == 0
+			PREPARE ENVIRONMENT EMPRESA cEmp FILIAL cFil
+		EndIf
+	EndIf
+
+	If Empty(cToken)
+		cToken	:=	STAPITOKEN()
+	EndIf
+
+	cUrlApi   := SuperGetMv("ST_URLCOLP",,"https://homo-steck-colplan.ve3.com.br/api")
+
+	cUrl 		:= cUrlApi+cPath
+
+	Aadd(aHeadOut,'Authorization: Bearer '+cToken)
+	Aadd(aHeadOut,'Content-Type: application/json')
+	Aadd(aHeadOut,'Accept: application/json')
+	AAdd(aHeadOut, "User-Agent: Chrome/65.0 (compatible; Protheus " + GetBuild() + ")")
+
+	nTimeOut := 1200
+
+	aSM0Data := FWSM0Util():GetSM0Data( cEmpAnt , cFilAnt , { "M0_CODIGO","M0_CGC","M0_CODFIL" } ) //Retorna o M0_CODFIL do grupo 99 e filial 01
+
+	While nRecno > 0
+
+		If IsInCallStack("U_STAPIMANUAL")
+			cMsg := "Consultando registros para envio..."
+			oGrid:SetIncMeter(1,cMsg)
+			ProcessMessages()
+		EndIf
+
+		cQrCusto := "SELECT SB2.R_E_C_N_O_ R_E_C_N_O_,B2_COD sku_code , B2_CM1 cost_average, B1_CUSTD cost_standard , B1_PRV1 cost_product_sold "+ CRLF
+		cQrCusto += "FROM " + RetSqlName('SB2') + ' SB2, '	+ CRLF
+		cQrCusto += RetSqlName('SB1') + ' SB1' 				+ CRLF
+		cQrCusto += "WHERE SB2.B2_COD = SB1.B1_COD"			+ CRLF
+
+		//cQrCusto += "AND SB2.B2_COD IN ('869260')"			+ CRLF
+
+		cQrCusto += "AND SB2.B2_FILIAL = '01'"				+ CRLF
+		cQrCusto += "AND SB2.B2_LOCAL IN ('01','03')"		+ CRLF
+		cQrCusto += "AND SB2.B2_CM1 > 0"					+ CRLF
+		cQrCusto += "AND SB2.R_E_C_N_O_ BETWEEN "+ cValtochar(nRecno)+" AND "+ cValtochar(nRecno+800) + CRLF
+		cQrCusto += "AND SB1.B1_TIPO ='PA'"					+ CRLF
+		cQrCusto += "AND SB1.D_E_L_E_T_=' '"				+ CRLF
+		cQrCusto += "AND SB2.D_E_L_E_T_=' '"				+ CRLF
+		cQrCusto += "ORDER BY SB2.R_E_C_N_O_ "	+ CRLF
+
+		TCQuery cQrCusto  New Alias (cAliasCusto:=GetNextAlias())
+
+		dbSelectArea(cAliasCusto)
+
+		Count To nTotal
+		(cAliasCusto)->(dbGoTop())
+
+		If Select(cAliasCusto) > 0
+			nRecnoAtu	:=	(cAliasCusto)->R_E_C_N_O_
+		EndIf
+
+		If nRecnoAtu > 0
+
+			cBody:='[ '
+
+			While !(cAliasCusto)->(Eof())
+
+				cBody+=	'{'																		+ CRLF
+				cBody+='"store_code": "'	+ aSM0Data[1][2]+aSM0Data[3][2] +'",'								+ CRLF
+				cBody+='"sku_code":"'		+ Alltrim(FwNoAccent((cAliasCusto)->sku_code)) +'",'				+ CRLF
+				cBody+='"cost_average":'	+ Alltrim(CValToChar((cAliasCusto)->cost_average))+',' 	+ CRLF
+				cBody+='"cost_standard":0,'	 														+ CRLF
+				cBody+='"cost_product_sold":0'											 		+ CRLF
+				cBody+=	'}'																		+ CRLF
+
+				If IsInCallStack("U_STAPIMANUAL")
+					cMsg := "Gerando Lote para envio, registro " + cValToChar(nAtu) + " de " + cValToChar(nTotal)
+					oGrid:SetIncMeter(1,cMsg)
+					ProcessMessages()
+				EndIf
+
+				nRecno	:=	(cAliasCusto)->R_E_C_N_O_+800
+				nAtu	:=	nAtu + 1
+
+				(cAliasCusto)->(dbSkip())
+
+				If !(cAliasCusto)->(Eof())
+					cBody+=','
+					Loop
+				EndIf
+
+			EndDo
+
+			cBody+=']'
+
+			(cAliasCusto)->(DBCLOSEAREA())
+
+
+			If IsInCallStack("U_STAPIMANUAL")
+				cMsg := "Enviando Lote para API..."
+				oGrid:SetIncMeter(1,cMsg)
+				ProcessMessages()
+			EndIf
+
+			sPostRet := HttpPost(cUrl,,EncodeUTF8(cBody),nTimeOut,aHeadOut,@cHeadRet)
+
+			nAtu := 1
+
+			oRet:=JsonObject():New()
+			oRet:FromJson(sPostRet)
+
+			If oRet["title"] <> 'Accepted'
+				cRet	:= cValtochar(oRet["status"]) +' - '+cValtochar(oRet["title"]) + CRLF
+				cRet	+= oRet["detail"]+ CRLF
+
+				cMsg	:= "Função STAPICUSTO -"+ Time()+" Erro no envio:" 	+	CRLF
+				cMsg	+= cRet						+	CRLF
+				cMsg	+= "Json com problema:"		+ 	CRLF
+				cMsg	+= cBody					+ 	CRLF
+
+				U_STAPILOG(cMsg,"STAPICUSTO")
+			Else
+
+				cUrlRet	:= 	oRet["_links"]["job"]["href"]
+
+				cMsg	:=	"Sucesso no envio do lote"
+
+				U_STAPILOG(cMsg,"STAPIPROD")
+
+				If !IsInCallStack("U_STAPIMANUAL")
+					STAPIREPOST(cUrlRet,cToken)
+				Endif
+
+			EndIf
+
+			cMsg	:= Time()+" - STAPICUSTO - Proximo Recno " + cValtoChar(nRecno)
+
+			U_STAPILOG(cMsg,"STAPICUSTO")
+
+		Else
+			cMsg	:= Time()+" - STAPICUSTO - Fim do Processamento "
+
+			U_STAPILOG(cMsg,"STAPICUSTO")
+
+			Return
+
+		EndIf
+	EndDo
+
+Return
+
+
+//*****************************************************************
+/*/{Protheus.doc} STAPIREPOST
+	Função responsável pela consulta dos envios da API S&OP 
+	Colplan
+	@type function
+	@version  1.00
+	@author Rogério Costa | CRM Services 
+	@since 11/11/2022 
+	@param cToken, character, Token de acesso a API
+	@param cUrlRet, character, Endereço da url para consulta
+/*/
+//*****************************************************************
+Static Function STAPIREPOST(cUrlRet,cToken)
+
+	Local aHeadOut2   	:= 	{}
+	Local cHttpHeader2	:= 	""
+	Local cHttpGet    	:= 	""
+	Local cRetPost		:=	""
+	Local cEmp		:= '11'
+	Local cFil		:= '01'
+
+	If !IsInCallStack("U_STAPIEXEC")
+
+		If Select("SX2") == 0
+			PREPARE ENVIRONMENT EMPRESA cEmp FILIAL cFil
+		EndIf
+	EndIf
+
+	While empty(cRetPost)
+
+		Aadd(aHeadOut2,'Authorization: Bearer '+cToken)
+		Aadd(aHeadOut2,'Content-Type: application/json')
+		Aadd(aHeadOut2,'Accept: application/json')
+
+		cHttpGet :=	HttpGet(cUrlRet,"",NIL,aHeadOut2,@cHttpHeader2)
+
+		oRet2:=JsonObject():New()
+		oRet2:FromJson(cHttpGet)
+		cRetPost:= oRet2["finished_at"]
+
+		If Empty(cRetPost)
+			Sleep(15000)
+		EndIf
+
+		aHeadOut2   := {}
+		cHttpHeader2:= ""
+		cHttpGet    := ""
+
+	EndDo
+
+Return (cRetPost)
+
+
+//*****************************************************************
+/*/{Protheus.doc} STAPILOG
+	Função responsável por salver log das integrações da API S&OP 
+	Colplan
+	@type function
+	@version  1.00
+	@author Rogério Costa | CRM Services 
+	@since 11/11/2022 
+	@param cErro, character, Token de acesso a API
+	@param cNomArq, character, Endereço da url para consulta
+	@param nTipo, numeric, tipo de log gerado
+/*/
+//*****************************************************************
+User Function STAPILOG(cErro,cNomArq,nTipo)
+
+	Local cLogFile 	:= "\arquivos\pedido\"+cNomArq+'_'+DTOS(DDATABASE)+".LOG"
+	Local cLogAnt 	:= "\arquivos\pedido\"+cNomArq+'_'+DTOS(DDATABASE-7)+".LOG"
+	Local lRet		:=.T.
+
+	If nTipo == 1
+		cLogFile 	:= "\arquivos\pedido\errojson_"+Time()+".LOG"
+	EndIf
+
+	//Exclui log de uma semana
+	If File(cLogAnt)
+		FERASE(cLogAnt)
+	End If
+
+	//efetua o tratamento para validar se o arquivo de log já existe
+	If !File(cLogFile)
+		If (nHandle := MSFCreate(cLogFile,0)) <> -1
+			lRet := .T.
+		EndIf
+	Else
+		If (nHandle := FOpen(cLogFile,2)) <> -1
+			FSeek(nHandle,0,2)
+			lRet := .T.
+		EndIf
+	EndIf
+
+	//****************************************************************
+	//grava as informações de log no arquivo especificado
+	//****************************************************************
+	If lRet
+		FWrite(nHandle,cErro+CHR(13)+CHR(10))
+	EndIf
+
+	FClose(nHandle)
+
+Return

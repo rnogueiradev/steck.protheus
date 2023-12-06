@@ -1,0 +1,72 @@
+#Include "Protheus.ch"
+#Include "TopConn.ch"
+#Define STR_PULA		Chr(13)+Chr(10)
+/*
+Funcion para modificar los Clase valor por script en PUC
+Gabriel Pulido
+Marzo 2021
+*/
+
+User Function uACCLVL()
+    Local aArea   := GetArea()
+    Local cCreaTB := ""
+
+    //Modifica Datos..
+    cCreaTB := "INSERT INTO ZDE030(ZDE_FILIAL,ZDE_CODIGO,ZDE_NOME,ZDE_CODEND,ZDE_ENDENT,ZDE_EST) VALUES('01','992711523001','INBALNOR S.A.','PRINCIPAL','GUAYAS SAN JACINTO DE YAGUACHI VIRGEN DE FATIMA SN ','09');" +STR_PULA
+    n1Statu := TCSqlExec(cCreaTB)
+    if (n1Statu < 0)
+        conout("TCSQLError() " + TCSQLError())
+    endif
+    cCreaTB := "INSERT INTO ZDE030(ZDE_FILIAL,ZDE_CODIGO,ZDE_NOME,ZDE_CODEND,ZDE_ENDENT,ZDE_EST) VALUES('01','992720409001','SWISSGAS DEL ECUADOR S.A.','DURAN','KM 11 VIA DURAN TAMBO AL LADO DE COFINA','09');" +STR_PULA
+    n1Statu := TCSqlExec(cCreaTB)
+    if (n1Statu < 0)
+        conout("TCSQLError() " + TCSQLError())
+    endif
+    cCreaTB := "INSERT INTO ZDE030(ZDE_FILIAL,ZDE_CODIGO,ZDE_NOME,ZDE_CODEND,ZDE_ENDENT,ZDE_EST) VALUES('01','909894545001','MELBIN MANUELA GOMEZ MONSERRATE001','PRINCIPAL','VIA A MARISCAL SUCRE ','09');" +STR_PULA
+    n1Statu := TCSqlExec(cCreaTB)
+    if (n1Statu < 0)
+        conout("TCSQLError() " + TCSQLError())
+    endif
+    cCreaTB := "INSERT INTO ZDE030(ZDE_FILIAL,ZDE_CODIGO,ZDE_NOME,ZDE_CODEND,ZDE_ENDENT,ZDE_EST) VALUES('01','990021279001','CRISTALERIA DEL ECUADOR S.A.','PRINCIPAL','VIA PERIMETRAL KM 22.5 ','09');" +STR_PULA
+    n1Statu := TCSqlExec(cCreaTB)
+    if (n1Statu < 0)
+        conout("TCSQLError() " + TCSQLError())
+    endif
+    cCreaTB := "INSERT INTO ZDE030(ZDE_FILIAL,ZDE_CODIGO,ZDE_NOME,ZDE_CODEND,ZDE_ENDENT,ZDE_EST) VALUES('01','990553963001','PROMARISCO S.A.','PRINCIPAL','DURAN ELOY ALFARO KM 6.5 SOLAR 19 Y SN ','09');" +STR_PULA
+    n1Statu := TCSqlExec(cCreaTB)
+    if (n1Statu < 0)
+        conout("TCSQLError() " + TCSQLError())
+    endif
+    cCreaTB := "INSERT INTO ZDE030(ZDE_FILIAL,ZDE_CODIGO,ZDE_NOME,ZDE_CODEND,ZDE_ENDENT,ZDE_EST) VALUES('01','990788766001','CODANA S.A.','PRINCIPAL','VIAMILAGRO -CHOBO, GARCIA MORENO S/N ','09');" +STR_PULA
+    n1Statu := TCSqlExec(cCreaTB)
+    if (n1Statu < 0)
+        conout("TCSQLError() " + TCSQLError())
+    endif
+    cCreaTB := "INSERT INTO ZDE030(ZDE_FILIAL,ZDE_CODIGO,ZDE_NOME,ZDE_CODEND,ZDE_ENDENT,ZDE_EST) VALUES('01','990533105001','PLANTACIONES DE BALSA PLANTABAL S.A.','LOS RIOS ','KM 4 5 carretero Quevedo Valencia parroquia San Camilo ','12');" +STR_PULA
+    n1Statu := TCSqlExec(cCreaTB)
+    if (n1Statu < 0)
+        conout("TCSQLError() " + TCSQLError())
+    endif
+    cCreaTB := "INSERT INTO ZDE030(ZDE_FILIAL,ZDE_CODIGO,ZDE_NOME,ZDE_CODEND,ZDE_ENDENT,ZDE_EST) VALUES('01','990005419001','COMPANIA AZUCARERA VALDEZ S.A.','PRINCIPAL','AV. J. ORRANTIA Y AV.JUAN TANCA','09');" +STR_PULA
+    n1Statu := TCSqlExec(cCreaTB)
+    if (n1Statu < 0)
+        conout("TCSQLError() " + TCSQLError())
+    endif
+    cCreaTB := "INSERT INTO ZDE030(ZDE_FILIAL,ZDE_CODIGO,ZDE_NOME,ZDE_CODEND,ZDE_ENDENT,ZDE_EST) VALUES('01','990005419001','COMPANIA AZUCARERA VALDEZ S.A.','PRINCIPAL','MARENGO EDIF. EXECUTIVE CENTER MZ. ','09');" +STR_PULA
+    n1Statu := TCSqlExec(cCreaTB)
+    if (n1Statu < 0)
+        conout("TCSQLError() " + TCSQLError())
+    endif
+    cCreaTB := "INSERT INTO ZDE030(ZDE_FILIAL,ZDE_CODIGO,ZDE_NOME,ZDE_CODEND,ZDE_ENDENT,ZDE_EST) VALUES('01','909894545','MELBIN MANUELA GOMEZ MONSERRATE ','MILAGRO','AV. MARISCAL SUCRE A 200 MTS DE ANTES DEL ANTIGUO BASURERO ','09');" +STR_PULA
+    n1Statu := TCSqlExec(cCreaTB)
+    if (n1Statu < 0)
+        conout("TCSQLError() " + TCSQLError())
+    endif
+    cCreaTB := "INSERT INTO ZDE030(ZDE_FILIAL,ZDE_CODIGO,ZDE_NOME,ZDE_CODEND,ZDE_ENDENT,ZDE_EST) VALUES('01','909894545','MELBIN MANUELA GOMEZ MONSERRATE ','PRINCIPAL','AV. MARISCAL SUCRE A 200 MTSANTES DEL ANTIGUO BASURERO ','09');" +STR_PULA
+    n1Statu := TCSqlExec(cCreaTB)
+    if (n1Statu < 0)
+        conout("TCSQLError() " + TCSQLError())
+    endif
+   
+    RestArea(aArea)
+Return

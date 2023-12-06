@@ -1,0 +1,93 @@
+#include "rwmake.ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³PAGACTA   ºAutor  ³                    º Data ³  07/07/06   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³INFORMA A CONTA BANCARIA DO FORNECEDOR                      º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³CNAB A PAGAR BRADESCO (POSICOES 105-119)                    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function Pagacta()
+
+SetPrvt("_CTACED,_RETDIG,_DIG1,_DIG2,_DIG3,_DIG4,_NPOSDV")
+SetPrvt("_DIG5,_DIG6,_DIG7,_MULT,_RESUL,_RESTO")
+SetPrvt("_DIGITO,")
+
+IF SEA->EA_MODELO$"01/02/03/05/08/41/43" 	// CREDITO EM C.C. / CHEQUE / DOC / CREDITO EM CONTA POUPANCA / TED
+	
+	If SA2->A2_BANCO == "237"
+		
+		_CtaCed := REPL("0",13-LEN(Alltrim(SA2->A2_NUMCON))) + Alltrim(SA2->A2_NUMCON) + Alltrim(SA2->A2_X_DVCTA) + SPACE(1)
+		
+	Else
+
+		If Len(Alltrim(SA2->A2_X_DVCTA))==2
+			_cDig := SA2->A2_X_DVCTA
+		Else
+			_cDig := Alltrim(SA2->A2_X_DVCTA)+SPACE(1)
+		Endif
+
+		_CtaCed := REPL("0",13-LEN(Alltrim(SA2->A2_NUMCON))) + Alltrim(SA2->A2_NUMCON) + _cDig 
+
+	Endif
+	
+	
+Else
+	
+	_cBanco := SUBSTR(SE2->E2_CODBAR,1,3)
+
+	If SEA->EA_MODELO == "31" .And. _cBanco != "237" .Or. Empty(SE2->E2_CODBAR)
+
+		_CtaCed  := REPL("0",15)
+	Else
+
+		_RETDIG := " "
+
+		If LEN(Alltrim(SE2->E2_CODBAR))==44
+		_CtaCed	:=  STRZERO(VAL(SUBSTR(SE2->E2_CODBAR,37,7)),13,0)
+		_DIG1   := SUBSTR(SE2->E2_CODBAR,37,1)
+		_DIG2   := SUBSTR(SE2->E2_CODBAR,38,1)
+		_DIG3   := SUBSTR(SE2->E2_CODBAR,39,1)
+		_DIG4   := SUBSTR(SE2->E2_CODBAR,40,1)
+		_DIG5   := SUBSTR(SE2->E2_CODBAR,41,1)
+		_DIG6   := SUBSTR(SE2->E2_CODBAR,42,1)
+		_DIG7   := SUBSTR(SE2->E2_CODBAR,43,1)
+		Else
+		_CtaCed	:=  STRZERO(VAL(SUBSTR(SE2->E2_CODBAR,24,7)),13,0)
+		_DIG1   := SUBSTR(SE2->E2_CODBAR,24,1)
+		_DIG2   := SUBSTR(SE2->E2_CODBAR,25,1)
+		_DIG3   := SUBSTR(SE2->E2_CODBAR,26,1)
+		_DIG4   := SUBSTR(SE2->E2_CODBAR,27,1)
+		_DIG5   := SUBSTR(SE2->E2_CODBAR,28,1)
+		_DIG6   := SUBSTR(SE2->E2_CODBAR,29,1)
+		_DIG7   := SUBSTR(SE2->E2_CODBAR,30,1)
+		EndIf
+
+		// Calculo do digito verificador
+		
+		_MULT   := (VAL(_DIG1)*2) +  (VAL(_DIG2)*7) +  (VAL(_DIG3)*6) +   (VAL(_DIG4)*5) +  (VAL(_DIG5)*4) +  (VAL(_DIG6)*3)  + (VAL(_DIG7)*2)
+		_RESUL  := INT(_MULT /11 )
+		_RESTO  := INT(_MULT % 11)
+		_DIGITO := STRZERO((11 - _RESTO),1,0)
+		
+		If _RESTO==1
+			_RETDIG := "P"
+		ElseIf _RESTO==0
+			_RETDIG := "0"
+		Else
+			_RETDIG := _DIGITO
+		Endif
+		
+		_CtaCed := _CtaCed + _RETDIG
+	Endif
+
+Endif
+
+Return(_CtaCed)

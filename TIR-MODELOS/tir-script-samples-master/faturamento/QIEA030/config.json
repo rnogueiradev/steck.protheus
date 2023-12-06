@@ -1,0 +1,14 @@
+{
+    "Url": "http://10.152.10.8:13001/",
+    "Browser": "Firefox",
+    "Environment": "d03_dist",
+    "Language": "pt-br",
+    "User": "admin",
+    "Password": "teste0623",
+    "Headless": false,
+    "CheckValue": false,
+    "NewLog": true,
+    "MotExec": "VALID_UN_MED",
+    "ExecId": "20230619",
+    "LogUrl1": "http://127.0.0.1:3333/log/"
+}

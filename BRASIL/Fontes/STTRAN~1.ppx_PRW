@@ -1,0 +1,1190 @@
+#line 1 "D:\TOTVS\MICROS~1\PROTHEUS\INCLUDE\Protheus.ch"
+#line 1 "D:\TOTVS\MICROS~1\PROTHEUS\INCLUDE\Dialog.ch"
+#line 28 "Protheus.ch"
+#line 1 "D:\TOTVS\MICROS~1\PROTHEUS\INCLUDE\Font.ch"
+#line 29 "Protheus.ch"
+#line 1 "D:\TOTVS\MICROS~1\PROTHEUS\INCLUDE\PTMenu.ch"
+#line 31 "Protheus.ch"
+#line 1 "D:\TOTVS\MICROS~1\PROTHEUS\INCLUDE\Print.ch"
+#line 33 "Protheus.ch"
+#line 1 "D:\TOTVS\MICROS~1\PROTHEUS\INCLUDE\Colors.ch"
+#line 35 "Protheus.ch"
+#line 1 "D:\TOTVS\MICROS~1\PROTHEUS\INCLUDE\Folder.ch"
+#line 37 "Protheus.ch"
+#line 1 "D:\TOTVS\MICROS~1\PROTHEUS\INCLUDE\msobject.ch"
+#line 38 "Protheus.ch"
+#line 1 "D:\TOTVS\MICROS~1\PROTHEUS\INCLUDE\VKey.ch"
+#line 42 "Protheus.ch"
+#line 1 "D:\TOTVS\MICROS~1\PROTHEUS\INCLUDE\WinApi.ch"
+#line 44 "Protheus.ch"
+#line 1 "D:\TOTVS\MICROS~1\PROTHEUS\INCLUDE\FWCommand.ch"
+#line 47 "Protheus.ch"
+#line 1 "D:\TOTVS\MICROS~1\PROTHEUS\INCLUDE\FWCSS.CH"
+#line 50 "Protheus.ch"
+#line 2 "d:\totvs\MICROS~1\protheus\MYPROJ~1\ACD-ES~1\STTRAN~1.PRW"
+#line 1 "D:\TOTVS\MICROS~1\PROTHEUS\INCLUDE\RwMake.ch"
+#line 1 "D:\TOTVS\MICROS~1\PROTHEUS\INCLUDE\stdwin.ch"
+#line 14 "RwMake.ch"
+#line 3 "d:\totvs\MICROS~1\protheus\MYPROJ~1\ACD-ES~1\STTRAN~1.PRW"
+#line 1 "D:\TOTVS\MICROS~1\PROTHEUS\INCLUDE\TBICONN.CH"
+#line 1 "D:\TOTVS\MICROS~1\PROTHEUS\INCLUDE\Ap5Mail.ch"
+#line 10 "TBICONN.CH"
+#line 4 "d:\totvs\MICROS~1\protheus\MYPROJ~1\ACD-ES~1\STTRAN~1.PRW"
+#line 1 "D:\TOTVS\MICROS~1\PROTHEUS\INCLUDE\FILEIO.CH"
+#line 5 "d:\totvs\MICROS~1\protheus\MYPROJ~1\ACD-ES~1\STTRAN~1.PRW"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Function U_STTRANSIBL()
+
+Private cPerg       := "TRANSIBL"
+Private cTime       := Time()
+Private cHora       := SUBSTR(cTime, 1, 2)
+Private cMinutos    := SUBSTR(cTime, 4, 2)
+Private cSegundos   := SUBSTR(cTime, 7, 2)
+Private cAliasLif   := cPerg+cHora+ cMinutos+cSegundos
+Private cAliasPed   := cPerg+cHora+ cMinutos+cSegundos
+Private cAliasSal   := cPerg+cHora+ cMinutos+cSegundos
+Private aSize    	:= MsAdvSize( .F. )
+Private lMark   	:= .F. 
+Private aVetor 		:= {}
+Private lSaida  	:= .F. 
+Private aCpoEnch	:= {}
+Private nOpcA		:= 0
+Private oOk	   		:= LoadBitmap( GetResources(), "LBOK" )
+Private oNo	   		:= LoadBitmap( GetResources(), "LBNO" )
+Private oChk
+Private lRetorno    := .F. 
+Private lChk	 	:= .F. 
+Private aVetor	 	:= {}
+Private oLbx
+Private lInverte 	:= .F. 
+Private nContLin 	:= 0
+Private lLote    	:= .F. 
+Private oDlg
+Private oList
+Private _nQtd   	:= 0
+Private  _nMeta 	:= 0
+Private oVlrSelec
+Private nVlrSelec 	:= 0
+Private oMarcAll
+Private lMarcAll    	:= .T. 
+Private oMarked	 := LoadBitmap(GetResources(),"LBOK")
+Private oNoMarked:= LoadBitmap(GetResources(),"LBNO")
+Private oMeta
+Private oPesc
+Private aTam     := {}
+Private cPesc    := ""
+Private _cSerIbl := IIF(CFILANT="01","001","001")
+Private bFiltraBrw
+Private AFILBRW    := {}
+Private _cEndeStxx  := "Endereços(SBF): "
+aTam   := TamSX3("BF_LOCALIZ")
+cPesc  := space(aTam[1])
+cCondicao := "F2_FILIAL=='"+xFilial("SF2")+"'"
+aFilBrw		:=	{"SF2",cCondicao}
+
+If cfilant = "02"
+
+Processa({|| 	STQUERY()},"Selecionando Endereços")
+
+Processa({|| 	CompMemory()},"Compondo Endereços")
+
+If len(aVetor) > 0
+	MonTaSlec()
+Else
+	Iif(FindFunction("APMsgInfo"), APMsgInfo("Não Existe Saldos nos Endereços !!!!!",), MsgInfo("Não Existe Saldos nos Endereços !!!!!",))
+EndIf
+Else
+  Iif(FindFunction("APMsgInfo"), APMsgInfo("Disponivel Apenas para  Filial 02",), MsgInfo("Disponivel Apenas para  Filial 02",))
+
+EndIf
+Return()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Static Function STQUERY()
+
+Local cQuery     := ""
+
+DbSelectArea("SBF")
+SBF->(DbSetOrder(1))
+
+
+cQuery := " SELECT"
+cQuery += " BF_LOCALIZ,"
+cQuery += " BF_LOCAL,"
+cQuery += ' SUM(BF_QUANT) "BF_QUANT"'
+cQuery += " FROM "+RetSqlName("SBF")+" SBF "
+cQuery += " WHERE  SBF.D_E_L_E_T_   = ' '"
+cQuery += " AND SBF.BF_LOCAL     = '03'"
+cQuery += " AND SBF.BF_QUANT > 0"
+cQuery += " AND SBF.BF_FILIAL ='"+xFilial("SBF")+"'"
+cQuery += " GROUP BY BF_LOCALIZ,BF_LOCAL"
+cQuery += " ORDER BY BF_LOCALIZ,BF_LOCAL"
+
+cQuery := ChangeQuery(cQuery)
+
+DbCommitAll()
+If Select(cAliasLif) > 0
+	(cAliasLif)->(dbCloseArea())
+EndIf
+
+dbUseArea( .T. ,"TOPCONN",TcGenQry(,,cQuery),cAliasLif, .T. , .T. )
+
+
+Return()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Static Function CompMemory()
+
+
+dbSelectArea(cAliasLif)
+(cAliasLif)->(dbGoTop())
+ProcRegua(RecCount())
+
+While !(cAliasLif)->(Eof())
+	_nQtd++
+	IncProc()
+
+
+
+
+	aadd(aVetor ,{ lMark ,	(cAliasLif)->BF_LOCALIZ		 ,	(cAliasLif)->BF_LOCAL		 ,	(cAliasLif)->BF_QUANT		 ,	})
+
+	(cAliasLif)->(dbSkip())
+End
+
+
+Return()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Static Function MonTaSlec()
+
+
+Local aButtons := {{"LBTIK",{|| PedStx()} ,"Gerar Pedido"} }
+
+while !lSaida
+	nOpcao := 0
+
+	odlg = MsDialog():New( 0, 0, aSize[6]-15, aSize[5]-15, "Transferencia",,,.F.,,,,, oMainWnd,.T.,, ,.F. )
+
+	cLinOk    :="AllwaysTrue()"
+	cTudoOk   :="AllwaysTrue()"
+	aCpoEnchoice:={"NOUSER"}
+	aAltEnchoice := {}
+
+
+	Private Altera:= .t. ,Inclui:= .t. ,lRefresh:= .t. ,aTELA:=Array(0,0),aGets:=Array(0), bCampo:={|nCPO|Field(nCPO)},nPosAnt:=9999,nColAnt:=9999
+	Private cSavScrVT,cSavScrVP,cSavScrHT,cSavScrHP,CurLen,nPosAtu:=0
+
+	 TSay():New( 010, 010,{||  "Quantidade( Endereços ):"},odlg,,,.F.,.F.,.F.,.T.,,,,,.F.,.F.,.F.,.F.,.F.,.F. )
+	 TGet():New( 010, 080, { | u | If( PCount() == 0, _nQtd, _nQtd := u ) },odlg, 55, 013, "@E 999,999",,,,,.F.,,.T.,,.F.,{||  .f. },.F.,.F.,,.F.,.F. ,,"_nQtd",,,, )
+	 TSay():New( 025, 010,{||  "Selecionados:"},odlg,,,.F.,.F.,.F.,.T.,,,,,.F.,.F.,.F.,.F.,.F.,.F. )
+	 oVlrSelec := TGet():New( 025, 080, { | u | If( PCount() == 0, _nMeta, _nMeta := u ) },odlg, 55, 013, "@E 999,999",,,,,.F.,,.T.,,.F.,{||  .f. },.F.,.F.,,.F.,.F. ,,"_nMeta",,,, )
+
+	 TSay():New( 025, 200,{||  "Pesquisar:"},odlg,,,.F.,.F.,.F.,.T.,,,,,.F.,.F.,.F.,.F.,.F.,.F. )
+	 oPesc := TGet():New( 025, 240, { | u | If( PCount() == 0, cPesc, cPesc := u ) },odlg, 35, 013,,{||  (fpesc(cPesc))},,,,.F.,,.T.,,.F.,{||  .t. },.F.,.F.,,.F.,.F. ,,"cPesc",,,, )
+
+
+	 oLbx := TWBrowse():New( 060, 000, aSize[3]-05, 255,,{ " ", "Endereço","Armazém","Saldo"},, oDlg, ,,,,{|nRow,nCol,nFlags|(edlista(oLbx:nat,oVlrSelec))},,,,,,,.F.,,.T.,,.F.,,, )
+
+	oLbx:SetArray( aVetor )
+
+
+
+
+	oLbx:bLine := {|| {Iif(	aVetor[oLbx:nAt,1],oOk,oNo), aVetor[oLbx:nAt,2], aVetor[oLbx:nAt,3], aVetor[oLbx:nAt,4], }}
+
+	 oChk := TCheckBox():New( aSize[4]-28, 005, "Marca/Desmarca",{ | u | If( PCount() == 0, lChk, lChk := u ) }, oDlg, 60, 007,,{|| (aEval(aVetor,{|x|x[1]:=lChk}),fMarca(),oLbx:Refresh())},,,,,.F.,.T.,,.F., )
+
+
+	oDlg:Activate( oDlg:bLClicked, oDlg:bMoved, oDlg:bPainted,.T.,,,{|Self|EnchoiceBar(oDlg,{||nOpca:=1,lSaida:= .t. ,oDlg:End()},{||nOpca:=0,lSaida:= .t. ,oDlg:End()},,aButtons)}, oDlg:bRClicked, )
+
+End
+If nOpca =1
+
+
+
+EndIf
+Return()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Static Function PedStx()
+
+
+If Iif(FindFunction("APMsgYesNo"), APMsgYesNo("Deseja Gerar o Pedido de Transferencia Com os Endereços Selecionados ?",), (cMsgYesNo:="MsgYesNo", &cMsgYesNo.("Deseja Gerar o Pedido de Transferencia Com os Endereços Selecionados ?",)))
+	Processa({|| 	GeraPed()},"Gerando Pedido .......")
+EndIf
+
+STQUERY()
+aVetor:= {}
+_nQtd := 0
+_nMeta:= 0
+Processa({|| 	CompMemory()},"Atualizando Endereços.....")
+
+
+
+oVlrSelec:Refresh()
+oLbx:Refresh()
+oDlg:Refresh()
+oDlg:End()
+Return()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Static Function fMarca()
+
+local b
+
+_nMeta:=0
+
+for b:= 1 to Len(aVetor)
+
+	If aVetor[oLbx:nAt,1]
+		_nMeta++
+	EndIf
+
+next
+
+oVlrSelec:Refresh()
+oLbx:Refresh()
+oDlg:Refresh()
+
+Return( .t.  )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Static Function fpesc(_cXPesc)
+
+local b
+Local _lRex := .f. 
+
+If !(Empty(Alltrim(_cXPesc)))
+	for b:= 1 to Len(aVetor)
+
+		If UPPER(ALLTRIM(aVetor[b,2]))   =  UPPER(ALLTRIM(_cXPesc) )
+			_lRex:= .T. 
+		EndIf
+
+	next
+
+Else
+	_lRex:= .T. 
+EndIf
+If _lRex .And.  !(Empty(Alltrim(_cXPesc)))
+	oLbx:nAt:= aScan(aVetor, {|x| Upper(AllTrim(x[2])) == UPPER(Alltrim(_cXPesc))})
+EndIf
+oLbx:Refresh()
+oDlg:Refresh()
+opesc:Refresh()
+Return( _lRex )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Static Function EdLista()
+
+Local b
+
+_nMeta:=0
+aVetor[oLbx:nAt,1]	:= !aVetor[oLbx:nAt,1]
+
+for b:= 1 to Len(aVetor)
+
+	If aVetor[b,1]
+		_nMeta++
+	EndIf
+
+next
+
+oVlrSelec:Refresh()
+oLbx:Refresh()
+oDlg:Refresh()
+Return ()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Static Function GeraPed( )
+
+Local aCabec     := {}
+Local aItens     := {}
+Local aLogErr    := {}
+Local cNumPed    := GetSX8Num("SC5","C5_NUM")
+Local _nxSaldo   := 0
+Local _nxEnd     := 0
+Local _cmsg      := " "
+Local nTam       := 0
+Local b
+Local _nIt       := 0
+Private lMsErroAuto     := .F. 
+Private lMsHelpAuto     := .T. 
+
+
+
+
+aAdd(aCabec, {"C5_NUM"		,     cNumPed						,Nil})
+aAdd(aCabec, {"C5_TIPO"		,"N"								,Nil})
+aAdd(aCabec, {"C5_CLIENTE"	,"033467"							,Nil})
+aAdd(aCabec, {"C5_LOJACLI"	,IIF(CFILANT="01","02","01")		,Nil})
+aAdd(aCabec, {"C5_CLIENT"	,"033467"							,Nil})
+aAdd(aCabec, {"C5_LOJAENT"	,IIF(CFILANT="01","02","01")		,Nil})
+aAdd(aCabec, {"C5_TIPOCLI"	,"F"								,Nil})
+aAdd(aCabec, {"C5_CONDPAG"	,"501"								,Nil})
+aAdd(aCabec, {"C5_EMISSAO"	,dDatabase							,Nil})
+aAdd(aCabec, {"C5_ZCONDPG"	,"501"								,Nil})
+aAdd(aCabec, {"C5_TABELA"	,IIF(CFILANT="01","001","") 		,Nil})
+aAdd(aCabec, {"C5_VEND1"	,IIF(CFILANT="01","R00099","E00006"),Nil})
+aAdd(aCabec, {"C5_TPFRETE"	,"C"								,Nil})
+aAdd(aCabec, {"C5_XTIPO"	,"2"								,Nil})
+aAdd(aCabec, {"C5_XTIPF"	,"1"								,Nil})
+
+
+
+
+
+
+For b:= 1 To Len(aVetor)
+
+	If aVetor[b,1]
+		_nxEnd++
+		_cEndeStxx+= "  "+cvaltochar(_nxEnd)+"="+aVetor[b,2]
+		xSTQUERY(aVetor[b,2])
+
+		dbSelectArea(cAliasPed)
+		(cAliasPed)->(dbGoTop())
+		ProcRegua(RecCount())
+
+		While !(cAliasPed)->(Eof())
+
+			IncProc()
+			DbSelectArea("SB1")
+			SB1->(DbSetOrder(1))
+			SB1->(DbSeek(xFilial("SB1")+(cAliasPed)->BF_PRODUTO))
+			_nxSaldo:= Sb2Saldo()
+			_nxSaldo:= (_nxSaldo/0.82)
+			If _nxSaldo <= 0
+				_nxSaldo:= 0.02
+			Endif
+
+			_nIt++
+
+
+
+
+
+
+
+
+
+
+
+
+			Aadd(aItens,{{"C6_ITEM"		,PadR(StrZero(_nIt,2),2)								,Nil},			{"C6_PRODUTO"	,(cAliasPed)->BF_PRODUTO											,Nil},			{"C6_UM"   		,SB1->B1_UM  														,Nil},			{"C6_QTDVEN"	,(cAliasPed)->BF_QUANT												,Nil},			{"C6_PRCVEN"	,_nxSaldo								  							,Nil},			{"C6_PRUNIT"	,_nxSaldo															,Nil},			{"C6_VALOR"		,round(_nxSaldo*(cAliasPed)->BF_QUANT,2)							,Nil},			{"C6_TES"		,"664"																,Nil},			{"C6_LOCAL"		,"03"																,Nil},			{"C6_CLI"		,"033467"															,Nil},			{"C6_OPER"		,"94"																,Nil},			{"C6_LOCALIZ"	,(cAliasPed)->BF_LOCALIZ											,Nil},			{"C6_ENTRE1"	,dDataBase															,Nil}})
+
+
+			_nxSaldo:= 0
+			(cAliasPed)->(dbSkip())
+		End
+
+
+
+	EndIf
+
+next
+Begin Sequence; BeginTran()
+MsExecAuto({|x, y, z| MATA410(x, y, z)}, aCabec, aItens, 3)
+EndTran(); end
+
+If lMsErroAuto
+	MostraErro()
+	DisarmTransaction()
+Else
+	Reclock("SC5", .F. )
+	_FIELD->C5_ZOBS := _cEndeStxx
+	MsUnlock()
+
+
+
+	If Iif(FindFunction("APMsgYesNo"), APMsgYesNo("Gera Nota Fiscal ?",), (cMsgYesNo:="MsgYesNo", &cMsgYesNo.("Gera Nota Fiscal ?",)))
+		Begin Sequence; BeginTran()
+		STGERNF()
+		EndTran(); end
+		_cmsg:= "  Nota: "+SF2->F2_DOC
+		Iif(FindFunction("APMsgInfo"), APMsgInfo("Pedido: "+SC5->C5_NUM+_cmsg,), MsgInfo("Pedido: "+SC5->C5_NUM+_cmsg,))
+
+		If Iif(FindFunction("APMsgYesNo"), APMsgYesNo("Transmitir a Nota?",), (cMsgYesNo:="MsgYesNo", &cMsgYesNo.("Transmitir a Nota?",)))
+			StSped(_cSerIbl,SF2->F2_DOC,SF2->F2_DOC,,)
+			If Iif(FindFunction("APMsgYesNo"), APMsgYesNo("Danfe ?",), (cMsgYesNo:="MsgYesNo", &cMsgYesNo.("Danfe ?",)))
+				dbSelectArea("SX1")
+				If dbSeek (Padr( "NFSIGW" , Len( X1_GRUPO ) , " " )+"01")
+					Reclock("SX1", .F. )
+					_FIELD->X1_CNT01 := SF2->F2_DOC
+					MsUnlock()
+				Endif
+				If dbSeek (Padr( "NFSIGW" , Len( X1_GRUPO ) , " " )+"02")
+					Reclock("SX1", .F. )
+					_FIELD->X1_CNT01 := SF2->F2_DOC
+					MsUnlock()
+				Endif
+				If dbSeek (Padr( "NFSIGW" , Len( X1_GRUPO ) , " " )+"03")
+					Reclock("SX1", .F. )
+					_FIELD->X1_CNT01 := SF2->F2_SERIE
+					MsUnlock()
+				Endif
+
+
+				nTam:= 1000000
+				ProcRegua(nTam)
+				For i=1 to nTam
+					IncProc("Transmitindo a Nota Fiscal")
+				Next
+
+				SpedDanfe()
+			EndIf
+		EndIf
+	Else
+		Iif(FindFunction("APMsgInfo"), APMsgInfo("Pedido: "+SC5->C5_NUM,), MsgInfo("Pedido: "+SC5->C5_NUM,))
+
+	EndIf
+
+
+EndIf
+
+
+_cEndeStxx:= " "
+
+
+Return ()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Static Function xSTQUERY(_cEnder)
+
+Local cQuery     := ""
+cPerg       := "ENDER"
+cTime       := Time()
+cHora       := SUBSTR(cTime, 1, 2)
+cMinutos    := SUBSTR(cTime, 4, 2)
+cSegundos   := SUBSTR(cTime, 7, 2)
+cAliasPed   := cPerg+cHora+ cMinutos+cSegundos
+
+
+cQuery := " SELECT"
+cQuery += " BF_LOCALIZ,"
+cQuery += " BF_LOCAL,"
+cQuery += " BF_QUANT,"
+cQuery += " BF_PRODUTO"
+cQuery += " FROM "+RetSqlName("SBF")+" SBF "
+cQuery += " WHERE  SBF.D_E_L_E_T_   = ' '"
+cQuery += " AND SBF.BF_LOCAL     = '03'"
+cQuery += " AND SBF.BF_QUANT > 0"
+cQuery += " AND SBF.BF_FILIAL  = '"+xFilial("SBF")+"'"
+cQuery += " AND SBF.BF_LOCALIZ = '"+_cEnder+"'"
+cQuery += " ORDER BY BF_LOCALIZ,BF_LOCAL"
+
+cQuery := ChangeQuery(cQuery)
+
+
+If Select(cAliasPed) > 0
+	(cAliasPed)->(dbCloseArea())
+EndIf
+
+dbUseArea( .T. ,"TOPCONN",TcGenQry(,,cQuery),cAliasPed, .T. , .T. )
+
+
+Return()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Static Function Sb2Saldo()
+
+Local _aArea	:= GetArea()
+Local cQuery     := " "
+Local  _nQut    := 0
+Local  _nVal    := 0
+Local  _nCust    := 0
+cPerg       := "SALDO"
+cTime       := Time()
+cHora       := SUBSTR(cTime, 1, 2)
+cMinutos    := SUBSTR(cTime, 4, 2)
+cSegundos   := SUBSTR(cTime, 7, 2)
+cAliasSal   := cPerg+cHora+ cMinutos+cSegundos
+
+
+
+
+cQuery := " SELECT B2_COD, B2_LOCAL,B2_FILIAL,B2_QATU,B2_VATU1 ,B2_CMFIM1"
+cQuery += " FROM "+RetSqlName("SB2")+" SB2 "
+cQuery += " WHERE SB2.D_E_L_E_T_ = ' '"
+cQuery += " AND   SB2.B2_COD   = '"+SB1->B1_COD+"'"
+cQuery += " AND   SB2.B2_LOCAL = '"+SB1->B1_LOCPAD+"'"
+cQuery += " AND   SB2.B2_FILIAL= '"+xFilial("SB2")+"'"
+cQuery += " ORDER BY SB2.R_E_C_N_O_"
+
+
+
+cQuery := ChangeQuery(cQuery)
+
+If Select(cAliasSal) > 0
+	(cAliasSal)->(dbCloseArea())
+EndIf
+
+dbUseArea( .T. ,"TOPCONN",TcGenQry(,,cQuery),cAliasSal)
+dbSelectArea(cAliasSal)
+If  Select(cAliasSal) > 0
+	(cAliasSal)->(dbgotop())
+	While (cAliasSal)->(!Eof())
+		_nCust  := (cAliasSal)->B2_CMFIM1
+		(cAliasSal)->(DbSkip())
+	End
+EndIf
+
+
+
+If Select(cAliasSal) > 0
+	(cAliasSal)->(dbCloseArea())
+EndIf
+
+RestArea(_aArea)
+Return(round(_nCust,2))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Static Function STGERNF()
+
+Local cNumPed:= SC5->C5_NUM
+Local aPvlNfs  := {}
+Local _cNota   := ""
+
+
+
+
+
+
+
+
+
+
+
+
+SC9->(DbSetOrder(1))
+If SC9->(DbSeek(xFilial("SC9")+cNumPed))
+	While SC9->(!EOF() .and.  C9_FILIAL+C9_PEDIDO == xFilial("SC9")+cNumPed)
+		Reclock("SC9", .F. )
+		_FIELD->C9_BLEST := ""
+		_FIELD->C9_BLCRED := ""
+		MsUnlock()
+		DbSelectArea("SC6")
+		SC6->(DbSetOrder(1))
+		If SC6->(DbSeek(xFilial("SC9")+SC9->C9_PEDIDO+SC9->C9_ITEM+SC9->C9_PRODUTO))
+			DbSelectArea("SE4")
+			SE4->(DbSetOrder(1))
+			If SE4->(DbSeek(xFilial("SE4")+SC5->C5_CONDPAG))
+				DbSelectArea("SB1")
+				SB1->(DbSetOrder(1))
+				If		SB1->(DbSeek(xFilial("SB1")+SC9->C9_PRODUTO))
+					DbSelectArea("SB2")
+					SB2->(DbSetOrder(1))
+					If		SB2->(DbSeek(xFilial("SB2")+SC9->C9_PRODUTO+SC9->C9_LOCAL))
+						DbSelectArea("SF4")
+						SF4->(DbSetOrder(1))
+						If		SF4->(DbSeek(xFilial("SF4")+SC6->C6_TES))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+							Aadd(aPvlNfs,{ SC9->C9_PEDIDO, SC9->C9_ITEM, SC9->C9_SEQUEN, SC9->C9_QTDLIB, SC9->C9_PRCVEN, SC9->C9_PRODUTO, .F. , SC9->(RecNo()), SC5->(RecNo()), SC6->(RecNo()), SE4->(RecNo()), SB1->(RecNo()), SB2->(RecNo()), SF4->(RecNo())})
+						Endif
+					Endif
+				Endif
+			Endif
+		Endif
+		SC9->(Dbskip())
+	EndDo
+Endif
+
+
+_cNota:=MaPvlNfs(aPvlNfs, _cSerIbl, .F. , .F. , .F. , .T. , .F. , 0, 0, .F. , .F. )
+
+
+Return(_cNota)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static Function StSped(cSerie,cNotaIni,cNotaFim,lCTe,lRetorno)
+
+
+
+Local aArea       := GetArea()
+Local aPerg       := {}
+Local aParam      := { }
+Local aTexto      := {}
+Local aXML        := {}
+
+Local cRetorno    := ""
+Local cIdEnt      := ""
+Local cModalidade := ""
+Local cAmbiente   := ""
+Local cVersao     := ""
+Local cVersaoCTe  := ""
+Local cVersaoDpec := ""
+Local cMonitorSEF := ""
+Local cSugestao   := ""
+Local cURL        := PadR(GetNewPar("MV_SPEDURL","http://"),250)
+Local cUsaColab	  := GetNewPar("MV_SPEDCOL","N")
+Local cUSERNEOG	  := GetNewPar("MV_USERCOL","")
+Local cPASSWORD	  := GetNewPar("MV_PASSCOL","")
+Local cCONFALL	  := GetNewPar("MV_CONFALL","N")
+Local cDocsColab  := GetNewPar("MV_DOCSCOL","0")
+Local cParNfeRem  := SM0->M0_CODIGO+SM0->M0_CODFIL+"SPEDNFEREM"
+Local cConteudo   := ""
+
+
+Local nRetCol	  := GetNewPar("MV_NRETCOL",10)
+Local nAmbCTeC	  := GetNewPar("MV_AMBICOL",2)
+Local nAmbNFeC	  := GetNewPar("MV_AMBCTEC",2)
+Local nX          := 0
+
+Local lOk         := .T. 
+
+Local oWs
+Local oWizard
+
+lCTe := If( lCTe == nil, .F. , lCTe ) ;
+lRetorno := If( lRetorno == nil, .F. , lRetorno ) ;
+
+
+
+aArea       := GetArea()
+aPerg       := {}
+aParam      := {Space(Len(SF2->F2_SERIE)),Space(Len(SF2->F2_DOC)),Space(Len(SF2->F2_DOC))}
+
+If cSerie == Nil
+	MV_PAR01 := aParam[01] := PadR(ParamLoad(cParNfeRem,aPerg,1,aParam[01]),Len(SF2->F2_SERIE))
+	MV_PAR02 := aParam[02] := PadR(ParamLoad(cParNfeRem,aPerg,2,aParam[02]),Len(SF2->F2_DOC))
+	MV_PAR03 := aParam[03] := PadR(ParamLoad(cParNfeRem,aPerg,3,aParam[03]),Len(SF2->F2_DOC))
+Else
+	MV_PAR01 := aParam[01] := cSerie
+	MV_PAR02 := aParam[02] := cNotaIni
+	MV_PAR03 := aParam[03] := cNotaFim
+EndIf
+
+aadd(aPerg,{1,"Serie da Nota Fiscal",aParam[01],"",".T.","",".T.",30, .F. })
+aadd(aPerg,{1,"Nota fiscal inicial",aParam[02],"",".T.","",".T.",30, .T. })
+aadd(aPerg,{1,"Nota fiscal final",aParam[03],"",".T.","",".T.",30, .T. })
+
+If IsReady()
+
+
+
+	cIdEnt := GetIdEnt()
+
+	If !Empty(cIdEnt)
+
+
+
+
+		oWS := WsSpedCfgNFe():New()
+		oWS:cUSERTOKEN := "TOTVS"
+		oWS:cID_ENT    := cIdEnt
+		oWS:nAmbiente  := 0
+		oWS:_URL       := AllTrim(cURL)+"/SPEDCFGNFe.apw"
+		lOk := oWS:CFGAMBIENTE()
+		cAmbiente := oWS:cCfgAmbienteResult
+		If lOk
+			lOk := oWs:CfgTSSVersao()
+		EndIf
+
+
+
+		If lOk .And.  oWs:cCfgTssVersaoResult >= "1.35"
+			oWS:cUSERTOKEN := "TOTVS"
+			oWS:cID_ENT    := cIdEnt
+			oWS:cUSACOLAB  := cUsaColab
+			oWS:nNUMRETNF  := nRetCol
+			oWS:nAMBIENTE  := 0
+			oWS:nMODALIDADE:= 0
+			oWS:cVERSAONFE := ""
+			oWS:cVERSAONSE := ""
+			oWS:cVERSAODPEC:= ""
+			oWS:cVERSAOCTE := ""
+			oWS:cUSERNEOG  := cUSERNEOG
+			oWS:cPASSWORD  := cPASSWORD
+			oWS:cCONFALL   := cCONFALL
+			IF oWs:cCfgTssVersaoResult >= "1.43"
+				If "1" $ Upper(cDocsColab)
+					cConteudo += "1"
+				EndiF
+				If "2" $ Upper(cDocsColab)
+					cConteudo += "2"
+				EndIF
+				If "3" $ Upper(cDocsColab)
+					cConteudo += "3"
+				EndIF
+				If "4" $ Upper(cDocsColab)
+					cConteudo := "4"
+				EndIF
+				If "0" $ Upper(cDocsColab)
+					cConteudo := "0"
+				EndIF
+				oWS:cDOCSCOL	:= cConteudo
+				oWS:nAMBNFECOLAB:= IIF(nAmbNFeC >= 1 .And.  nAmbNFeC <=2,nAmbNFeC,2)
+				oWS:nAMBCTECOLAB:= IIF(nAmbCTeC >= 1 .And.  nAmbCTeC <=2,nAmbCTeC,2)
+			EndIF
+			oWS:_URL       := AllTrim(cURL)+"/SPEDCFGNFe.apw"
+			oWS:CFGPARAMSPED()
+		EndIf
+
+
+
+		If lOk
+			oWS:cUSERTOKEN := "TOTVS"
+			oWS:cID_ENT    := cIdEnt
+			oWS:nModalidade:= 0
+			oWS:_URL       := AllTrim(cURL)+"/SPEDCFGNFe.apw"
+			lOk := oWS:CFGModalidade()
+			cModalidade    := oWS:cCfgModalidadeResult
+			If oWS:CFGModalidade()
+				cModalidade    := SubStr(oWS:cCfgModalidadeResult,1,1)
+			Else
+				cModalidade    := ""
+			EndIf
+
+		EndIf
+
+
+
+		If lOk
+			oWS:cUSERTOKEN := "TOTVS"
+			oWS:cID_ENT    := cIdEnt
+			oWS:cVersao    := "0.00"
+			oWS:_URL       := AllTrim(cURL)+"/SPEDCFGNFe.apw"
+			lOk := oWS:CFGVersao()
+			cVersao        := oWS:cCfgVersaoResult
+		EndIf
+		If lOk
+			oWS:cUSERTOKEN := "TOTVS"
+			oWS:cID_ENT    := cIdEnt
+			oWS:cVersao    := "0.00"
+			oWS:_URL       := AllTrim(cURL)+"/SPEDCFGNFe.apw"
+			lOk := oWS:CFGVersaoCTe()
+			cVersaoCTe     := oWS:cCfgVersaoCTeResult
+		EndIf
+		If lOk
+			oWS:cUSERTOKEN := "TOTVS"
+			oWS:cID_ENT    := cIdEnt
+			oWS:cVersao    := "0.00"
+			oWS:_URL       := AllTrim(cURL)+"/SPEDCFGNFe.apw"
+			lOk := oWS:CFGVersaoDpec()
+			cVersaoDpec	   := oWS:cCfgVersaoDpecResult
+		EndIf
+
+
+
+		If lOk
+			oWS:= WSNFeSBRA():New()
+			oWS:cUSERTOKEN := "TOTVS"
+			oWS:cID_ENT    := cIdEnt
+			oWS:_URL       := AllTrim(cURL)+"/NFeSBRA.apw"
+			lOk := oWS:MONITORSEFAZMODELO()
+			If lOk
+				aXML := oWS:oWsMonitorSefazModeloResult:OWSMONITORSTATUSSEFAZMODELO
+				For nX := 1 To Len(aXML)
+					Do Case
+						Case aXML[nX]:cModelo == "55"
+							cMonitorSEF += "- NFe"+Chr(13)+Chr(10)
+							cMonitorSEF += "Versao do layout: "+cVersao+Chr(13)+Chr(10)
+							If !Empty(aXML[nX]:cSugestao)
+								cSugestao += "Sugestão"+"(NFe)"+": "+aXML[nX]:cSugestao+Chr(13)+Chr(10)
+							EndIf
+
+						Case aXML[nX]:cModelo == "57"
+							cMonitorSEF += "- CTe"+Chr(13)+Chr(10)
+							cMonitorSEF += "Versao do layout: "+cVersaoCTe+Chr(13)+Chr(10)
+							If !Empty(aXML[nX]:cSugestao)
+								cSugestao += "Sugestão"+"(CTe)"+": "+aXML[nX]:cSugestao+Chr(13)+Chr(10)
+							EndIf
+					EndCase
+					cMonitorSEF += Space(6)+"Versão da mensagem"+": "+aXML[nX]:cVersaoMensagem+Chr(13)+Chr(10)
+					cMonitorSEF += Space(6)+"Código do Status"+": "+aXML[nX]:cStatusCodigo+"-"+aXML[nX]:cStatusMensagem+Chr(13)+Chr(10)
+					cMonitorSEF += Space(6)+"UF Origem"+": "+aXML[nX]:cUFOrigem
+					If !Empty(aXML[nX]:cUFResposta)
+						cMonitorSEF += "("+aXML[nX]:cUFResposta+")"+Chr(13)+Chr(10)
+					Else
+						cMonitorSEF += Chr(13)+Chr(10)
+					EndIf
+					If aXML[nX]:nTempoMedioSEF <> Nil
+						cMonitorSEF += Space(6)+"Tempo de espera"+": "+Str(aXML[nX]:nTempoMedioSEF,6)+Chr(13)+Chr(10)
+					EndIf
+					If !Empty(aXML[nX]:cMotivo)
+						cMonitorSEF += Space(6)+"Motivo"+": "+aXML[nX]:cMotivo+Chr(13)+Chr(10)
+					EndIf
+					If !Empty(aXML[nX]:cObservacao)
+						cMonitorSEF += Space(6)+"Observação"+": "+aXML[nX]:cObservacao+Chr(13)+Chr(10)
+					EndIf
+				next
+			EndIf
+		EndIf
+
+
+
+		If ((lOk == .T.  .or.  lOk == Nil) .And.  (!lCTe))
+
+			SpedNFeTrf("SF2",cSerie,cNotaIni,cNotaFim,cIdEnt,cAmbiente,"1","2.00", .t. ,, .t. )
+
+		ElseIf (lCTe) .And.  (lOk)
+			SpedNFeTrf(aArea[1],aParam[1],aParam[2],aParam[3],cIdEnt,cAmbiente,"1",cVersaoCTe, .T. , lCTe, .t. )
+		EndIf
+		lRetorno := lOk
+	Else
+		lRetorno := .F. 
+	EndIf
+
+EndIf
+
+RestArea(aArea)
+Return
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Static Function IsReady(cURL,nTipo,lHelp)
+
+Local nX       := 0
+Local cHelp    := ""
+Local oWS
+Local lRetorno := .F. 
+nTipo := If( nTipo == nil, 1, nTipo ) ;
+lHelp := If( lHelp == nil, .F. , lHelp ) ;
+If !Empty(cURL) .And.  !PutMV("MV_SPEDURL",cURL)
+	RecLock("SX6", .T. )
+	SX6->X6_FIL     := xFilial( "SX6" )
+	SX6->X6_VAR     := "MV_SPEDURL"
+	SX6->X6_TIPO    := "C"
+	SX6->X6_DESCRIC := "URL SPED NFe"
+	MsUnLock()
+	PutMV("MV_SPEDURL",cURL)
+EndIf
+SuperGetMv()
+cURL := If( cURL == nil, PadR(GetNewPar("MV_SPEDURL","http://"),250), cURL ) ;
+
+
+
+oWs := WsSpedCfgNFe():New()
+oWs:cUserToken := "TOTVS"
+oWS:_URL := AllTrim(cURL)+"/SPEDCFGNFe.apw"
+If oWs:CFGCONNECT()
+	lRetorno := .T. 
+Else
+	If lHelp
+		Aviso("SPED",IIf(Empty(GetWscError(3)),GetWscError(1),GetWscError(3)),{"ok"},3)
+	EndIf
+	lRetorno := .F. 
+EndIf
+
+
+
+If nTipo <> 1 .And.  lRetorno
+	oWs:cUserToken := "TOTVS"
+	oWs:cID_ENT    := GetIdEnt()
+	oWS:_URL := AllTrim(cURL)+"/SPEDCFGNFe.apw"
+	If oWs:CFGReady()
+		lRetorno := .T. 
+	Else
+		If nTipo == 3
+			cHelp := IIf(Empty(GetWscError(3)),GetWscError(1),GetWscError(3))
+			If lHelp .And.  !"003" $ cHelp
+				Aviso("SPED",cHelp,{"ok"},3)
+				lRetorno := .F. 
+			EndIf
+		Else
+			lRetorno := .F. 
+		EndIf
+	EndIf
+EndIf
+
+
+
+If nTipo == 2 .And.  lRetorno
+	oWs:cUserToken := "TOTVS"
+	oWs:cID_ENT    := GetIdEnt()
+	oWS:_URL := AllTrim(cURL)+"/SPEDCFGNFe.apw"
+	If oWs:CFGStatusCertificate()
+		If Len(oWs:oWSCFGSTATUSCERTIFICATERESULT:OWSDIGITALCERTIFICATE) > 0
+			For nX := 1 To Len(oWs:oWSCFGSTATUSCERTIFICATERESULT:OWSDIGITALCERTIFICATE)
+				If oWs:oWSCFGSTATUSCERTIFICATERESULT:OWSDIGITALCERTIFICATE[nx]:DVALIDTO-30 <= Date()
+
+					Aviso("SPED","O certificado digital irá vencer em: "+Dtoc(oWs:oWSCFGSTATUSCERTIFICATERESULT:OWSDIGITALCERTIFICATE[nX]:DVALIDTO),{"ok"},3)
+
+				EndIf
+			next
+		EndIf
+	EndIf
+EndIf
+
+Return(lRetorno)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Static Function GetIdEnt()
+
+Local aArea  := GetArea()
+Local cIdEnt := ""
+Local cURL   := PadR(GetNewPar("MV_SPEDURL","http://"),250)
+Local oWs
+Local lUsaGesEmp := IIF(FindFunction("FWFilialName") .And.  FindFunction("FWSizeFilial") .And.  FWSizeFilial() > 2, .T. , .F. )
+
+
+
+oWS := WsSPEDAdm():New()
+oWS:cUSERTOKEN := "TOTVS"
+
+oWS:oWSEMPRESA:cCNPJ       := IIF(SM0->M0_TPINSC==2 .Or.  Empty(SM0->M0_TPINSC),SM0->M0_CGC,"")
+oWS:oWSEMPRESA:cCPF        := IIF(SM0->M0_TPINSC==3,SM0->M0_CGC,"")
+oWS:oWSEMPRESA:cIE         := SM0->M0_INSC
+oWS:oWSEMPRESA:cIM         := SM0->M0_INSCM
+oWS:oWSEMPRESA:cNOME       := SM0->M0_NOMECOM
+oWS:oWSEMPRESA:cFANTASIA   := IIF(lUsaGesEmp,FWFilialName(),Alltrim(SM0->M0_NOME))
+oWS:oWSEMPRESA:cENDERECO   := FisGetEnd(SM0->M0_ENDENT)[1]
+oWS:oWSEMPRESA:cNUM        := FisGetEnd(SM0->M0_ENDENT)[3]
+oWS:oWSEMPRESA:cCOMPL      := FisGetEnd(SM0->M0_ENDENT)[4]
+oWS:oWSEMPRESA:cUF         := SM0->M0_ESTENT
+oWS:oWSEMPRESA:cCEP        := SM0->M0_CEPENT
+oWS:oWSEMPRESA:cCOD_MUN    := SM0->M0_CODMUN
+oWS:oWSEMPRESA:cCOD_PAIS   := "1058"
+oWS:oWSEMPRESA:cBAIRRO     := SM0->M0_BAIRENT
+oWS:oWSEMPRESA:cMUN        := SM0->M0_CIDENT
+oWS:oWSEMPRESA:cCEP_CP     := Nil
+oWS:oWSEMPRESA:cCP         := Nil
+oWS:oWSEMPRESA:cDDD        := Str(FisGetTel(SM0->M0_TEL)[2],3)
+oWS:oWSEMPRESA:cFONE       := AllTrim(Str(FisGetTel(SM0->M0_TEL)[3],15))
+oWS:oWSEMPRESA:cFAX        := AllTrim(Str(FisGetTel(SM0->M0_FAX)[3],15))
+oWS:oWSEMPRESA:cEMAIL      := UsrRetMail(RetCodUsr())
+oWS:oWSEMPRESA:cNIRE       := SM0->M0_NIRE
+oWS:oWSEMPRESA:dDTRE       := SM0->M0_DTRE
+oWS:oWSEMPRESA:cNIT        := IIF(SM0->M0_TPINSC==1,SM0->M0_CGC,"")
+oWS:oWSEMPRESA:cINDSITESP  := ""
+oWS:oWSEMPRESA:cID_MATRIZ  := ""
+oWS:oWSOUTRASINSCRICOES:oWSInscricao := SPEDADM_ARRAYOFSPED_GENERICSTRUCT():New()
+oWS:_URL := AllTrim(cURL)+"/SPEDADM.apw"
+If oWs:ADMEMPRESAS()
+	cIdEnt  := oWs:cADMEMPRESASRESULT
+Else
+	Aviso("SPED",IIf(Empty(GetWscError(3)),GetWscError(1),GetWscError(3)),{"ok"},3)
+EndIf
+
+RestArea(aArea)
+Return(cIdEnt)

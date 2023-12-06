@@ -1,0 +1,1338 @@
+#INCLUDE "Protheus.ch" 
+#INCLUDE "Topconn.ch"
+/*
+Padrao Zebra
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³IMG05Ofi  ºAutor  ³Luiz Enrique        º Data ³  01/10/2009 º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³Ponto de entrada referente a imagem de identificacao do     º±±
+±±º          ³volume Oficial		                                      º±±
+±±º          ³**** UTILIZA CB7 POSICIONADO ****                           º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ STECK			                                          º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±*/
+//--------------------------------------------------------------------------//
+//Alterações Realizadas:
+//22/06/2021 - Flávia Rocha:
+//             Ticket #20210621010461 - impressão etiqueta p/ transp.Braspress
+//--------------------------------------------------------------------------//
+
+User Function Img05()
+	Local cVolume := Paramixb[1]
+	Local aPgs    := {}
+	Local aAux    := {}
+	Local nLimite := 17 // quantide de produto que cabem na etiqueta
+	Local nC      := 0
+	Local nX      := 0
+	Local cLocOri := Paramixb[5]
+	Local cLocImp := Paramixb[6]
+
+	//Tiago - chamado: 20230607007153 - data: 22/06/2023
+	Private nQtdDig 	:= Paramixb[7]
+	Private nTotPedi 	:= Paramixb[8]
+
+	
+	CB6->(DbSetorder(1))
+	CB6->(DbSeek(xFilial('CB6')+cVolume))
+
+	If Empty(CB6->CB6_XPESO)
+		MsgAlert("Volume em aberto, não poderá ser impresso!!!","Atenção")
+		Return
+	EndIf
+
+	CB9->(DbSetOrder(4))
+	CB9->(DbSeek(xFilial("CB9")+cVolume))
+	While CB9->(! Eof() .and. CB9_FILIAL+CB9_VOLUME == xFilial("CB9")+cVolume)
+		
+		aadd(aAux,{CB9->CB9_PROD,Transform(CB9->CB9_QTEEMB,"999999") })
+		nc++
+		If nC > nLimite
+			aadd(aPgs,aClone(aAux))
+			aAux:={}
+			nC:=0
+		EndIf
+		CB9->(DbSkip())		
+	End
+
+	If ! Empty(aAux)
+		aadd(aPgs,aClone(aAux))
+	EndIf
+
+	If Empty(aPgs)
+		MsgAlert("Volume vazio!!!","Atenção")
+		Return
+	EndIf
+
+	SA1->(DbSetOrder(1))
+	SA1->(DbSeek(xFilial("SA1")+CB7->(CB7_CLIENT+CB7_LOJA)))
+	SA4->(DbSetOrder(1))
+	SA4->(DbSeek(xFilial("SA4")+CB7->CB7_TRANSP))
+
+	For nX:= 1 to len(aPgs)
+		U_STIMGVOL(cVolume,aPgs[nX],cLocOri,cLocImp)		//rotina impressão da etiqueta
+	Next
+
+Return
+
+//Imprime a etiqueta cod. barras
+User Function STIMGVOL(cVolume,aItenPg,cLocOri,cLocImp)
+
+	Local nx
+	Local nLin
+	Local cNReduz	:= AllTrim(SA1->A1_NREDUZ)
+	Local cSeq		:= Right(CB6->CB6_VOLUME,4)
+	Local cPedido	:= CB6->CB6_PEDIDO
+	Local cTipVol	:= CB6->CB6_TIPVOL
+	Local cRegiao	:= SA1->A1_GRPVEN
+	Local cPeso		:= Alltrim(Str(CB6->CB6_XPESO,9,3))
+	Local cNomEmp	:= SM0->M0_NOME
+	Local cCNPJ		:= Transform(SM0->M0_CGC, "@R 99.999.999-9999/99")
+	Local cMunici	:= Alltrim(SA1->A1_MUN)
+	Local cUF		:= SA1->A1_EST
+	Local cOs		:= CB6->CB6_XORDSE
+	Local ctam1		:= "016,012"
+	Local ctam2		:= "016,014"
+	Local ctam3		:= "022,018"
+	Local ctam3l	:= "030,025"
+	Local ctam32	:= "040,035"
+	Local ctam4		:= "30,30"
+	Local ctam5		:= "030,034"
+	Local ctam6		:= "040,038"
+	Local ctam7		:= "045,040"
+	Local _nLin		:= 7
+	Local _nCol		:= 0
+	Local _cQuery8  := ""
+	Local _cAlias8  := GetNextAlias()
+	Local _nX
+	Local aTEmpFil          := Separa(getMV("ST_TEMPFIL",.F.,"11,01"),",")    // Valdemir Rabelo 07/01/2022 - Aruja CD
+	
+	Private _cUltDig:= ""
+	Private lTNT          := .F.
+	Private lBraspress    := .F.
+	Private lDhl    := .F.
+	Private _cCodBraspres := Alltrim(GetNewPar("ST_BRACODT","004064")) 	//FR - 22/06/2021 - #20210621010461
+	Private _cCodTNT      := Alltrim(GetNewPar("ST_TNTCODT","000163"))	//FR - 22/06/2021 - #20210621010461
+	Private _cCodDHL      := Alltrim(GetNewPar("ST_DHLCODT","004415"))
+	Private _cTpFrete     := "" 
+	Private lUltimo		  := .F.
+	Private _cCodDHLacli  := Alltrim(GetNewPar("ST_DHLACLI","068989"))	//LG - 10/04/2023 - CLIENTES AGENDADOS
+	Private cQueryB9      := ""
+	Private cQueryC9	  := ""
+	Private cOrdSep	      := ""
+	
+	DbSelectArea("SC5")
+	SC5->(DbSetOrder(1))
+	SC5->(DbGoTop())
+	SC5->(DbSeek(xFilial("SC5")+cPedido))
+
+	If SC5->C5_TPFRETE == "C"	//CIF
+		_cTpFrete := "1"
+	Elseif SC5->C5_TPFRETE == "F" 	//FOB
+		_cTpFrete := "2"
+	Else
+		_cTpFrete := "2"
+	Endif
+
+	DbSelectArea("CC2")
+	CC2->(DbSetOrder(1))
+	CC2->(DbGoTop())
+	If !CC2->(DbSeek(xFilial("CC2")+SA1->(A1_EST+A1_COD_MUN)))
+		MsgAlert("Município não encontrado, verifique!")
+		Return
+	EndIf
+
+
+	If AllTrim(SC5->C5_TRANSP)==_cCodTNT .And. GetMv("ST_NEWTNT",,.T.) .And. cEmpAnt==aTEmpFil[1] .And. cFilAnt==aTEmpFil[2] 	//FR - 22/06/2021 #20210621010461 / V07/01/2022 - Valdemir Rabelo adicionado parametro Aruja - CD
+		lTNT  := .T.
+		Conout("Variavel lTNT habilitada")
+	Elseif AllTrim(SC5->C5_TRANSP)== _cCodBraspres .And. GetMv("ST_NEWBRA",,.T.) .And. cEmpAnt==aTEmpFil[1] .And. cFilAnt==aTEmpFil[2] 	//FR - 22/06/2021#20210621010461
+		lBraspress    := .T.
+		Conout("Variavel lBraspress habilitada")
+	Elseif AllTrim(SC5->C5_TRANSP)== _cCodDHL .And. GetMv("ST_NEWDHL",,.T.) .And. cEmpAnt==aTEmpFil[1] .And. cFilAnt==aTEmpFil[2] 	//FR - 22/06/2021#20210621010461
+		lDhl    := .T.
+		Conout("Variavel lDhl habilitada")
+	Endif
+
+	//If AllTrim(SC5->C5_TRANSP)=="000163" .And. GetMv("ST_NEWTNT",,.T.) .And. cEmpAnt=="01" .And. cFilAnt=="02"
+	//FR - 22/06/2021 - #20210621010461
+	If lTNT .or. lBraspress .Or. lDhl
+
+		_aEndEnt := U_STTNT011()  //obtém o endereço de entrega		
+
+		_cQuery8 := " SELECT * " 
+		_cQuery8 += " FROM "+RetSqlName("SZV")+" ZV "
+		_cQuery8 += " WHERE ZV.D_E_L_E_T_=' ' AND '"+ _aEndEnt[1][1]+"' BETWEEN ZV_CEPDE AND ZV_CEPATE "
+		//FR - 22/06/2021
+		If lTNT
+			_cQuery8 += " AND ZV_TRANSP = '"+ _cCodTNT + "' "
+		Elseif lBraspress
+			_cQuery8 += " AND ZV_TRANSP = '"+ _cCodBraspres + "' "
+		Elseif lDhl
+			_cQuery8 += " AND ZV_TRANSP = '"+ _cCodDHL + "' "
+		Endif
+
+		If !Empty(Select(_cAlias8))
+			DbSelectArea(_cAlias8)
+			(_cAlias8)->(dbCloseArea())
+		Endif
+
+		dbUseArea(.T.,"TOPCONN",TcGenQry(,,_cQuery8),_cAlias8,.T.,.T.)
+
+		dbSelectArea(_cAlias8)
+
+		(_cAlias8)->(dbGoTop())
+
+		If (_cAlias8)->(Eof())
+		    Conout("Rota não encontrada, sairá da rotina")
+			MsgAlert("Rota não encontrada, verifique!")
+			Return
+		EndIf
+
+		If lTNT
+		    conout("Irá carregar o logo TNT")
+			MSCBLOADGRF("tnt.GRF")				
+			MSCBLOADGRF("lgstktnt.grf")			
+		Elseif lBraspress
+
+			//MsgAlert("BrasPress!!!","Atenção")
+
+		    conout("Irá carregar o BrasPress")
+			MSCBLOADGRF("braspress.GRF")			//FR - 22/06/2021 - ver logo da Braspress
+			MSCBLOADGRF("lgstktnt.grf")			
+
+       		//MSCBLOADGRF("lgstkbras.grf")			//FR - 22/06/2021 - ver logo da Braspress
+		ElseIf lDhl
+			MSCBLOADGRF("dhl.grf")
+			MSCBLOADGRF("lgstktnt.grf")			
+		Endif
+
+
+		//Vertical,Horizontal
+		//FR - 22/06/2021 - Ticket #20210621010461 
+	//	If lTNT
+			MSCBINFOETI("TNT","") 
+	//	Elseif lBraspress
+//			MSCBINFOETI("TNT","")
+//		Endif
+		//FR - 22/06/2021 - Ticket #20210621010461 
+		
+		//MSCBPrinter("ETIQUETA","LPT1",6)      // Liberado para Valdemir fazer TESTE comentar após uso
+
+		MSCBBEGIN(1,4,100)
+
+		If lTNT
+			MSCBGrafic(94,04,"tnt",.F.)			//FR - 22/06/2021 - ver logo da Braspress
+			MSCBGrafic(95,27,"lgstktnt",.F.)	//FR - 22/06/2021 - ver logo da Braspress
+		Elseif lBraspress
+			MSCBGrafic(94,04,"braspress",.F.)			//FR - 22/06/2021 - ver logo da Braspress
+			MSCBGrafic(95,30,"lgstktnt",.F.)	//FR - 22/06/2021 - ver logo da Braspress
+		Elseif lDhl
+			MSCBGrafic(94,04,"dhl",.F.)			//FR - 22/06/2021 - ver logo da Braspress
+			MSCBGrafic(94,31,"lgstktnt",.F.)	//FR - 22/06/2021 - ver logo da Braspress
+		Endif
+
+		MSCBLineH(35,105,100,3,"B")
+		MSCBLineH(45,70,100,3,"B")
+		MSCBLineH(35,150,100,3,"B")
+
+		MSCBLineV(35,00,150,3,"B")
+		MSCBLineV(45,00,105,3,"B")
+		MSCBLineV(65,70,105,3,"B")
+		MSCBLineV(92,00,105,3,"B")
+
+		MSCBSAY(_nCol+94,_nLin+52,"RODO"		  						,"R","0",ctam4)
+
+		//MSCBSAY(_nCol+97,_nLin+79,"OS"		  						,"R","0",ctam3)
+		//MSCBSAY(_nCol+92,_nLin+69,(_cAlias8)->ZV_DESTINO+" "+cOs		,"R","0",ctam6)
+		MSCBSAY(_nCol+92,_nLin+68,"O.S. "+cOs							,"R","0",ctam7)
+
+		MSCBSAY(_nCol+88,_nLin-02,"REMETENTE:"			  				,"R","0",ctam3)
+		MSCBSAY(_nCol+84,_nLin-01,"STECK DISTRIBUIDORA LTDA"			,"R","0",ctam4)
+
+		MSCBSAY(_nCol+80,_nLin-02,"DESTINATARIO:"		  				,"R","0",ctam3)
+
+		MSCBSAY(_nCol+76,_nLin-01,SubStr(SA1->A1_NOME,1,30)				,"R","0",ctam4)
+		MSCBSAY(_nCol+73,_nLin-01,SubStr(SA1->A1_NOME,31,60)			,"R","0",ctam4)
+
+		MSCBSAY(_nCol+70,_nLin-01,SubStr(_aEndEnt[1][2],1,30)				,"R","0",ctam4)
+		MSCBSAY(_nCol+67,_nLin-01,SubStr(_aEndEnt[1][2],31,60)				,"R","0",ctam4)
+
+		If !_aEndEnt[1][7]
+			If Empty(SubStr(_aEndEnt[1][2],31,60))
+				MSCBSAY(_nCol+67,_nLin-01,SA1->A1_COMPLEM						,"R","0",ctam4)
+			Else
+				MSCBSAY(_nCol+64,_nLin-01,SA1->A1_COMPLEM						,"R","0",ctam4)
+			EndIf
+		EndIf
+
+		MSCBSAY(_nCol+61,_nLin-01,_aEndEnt[1][3]						,"R","0",ctam4)
+		MSCBSAY(_nCol+58,_nLin-01,AllTrim(_aEndEnt[1][5])+", "+_aEndEnt[1][6]+", BRASIL" ,"R","0",ctam4)
+		MSCBSAY(55,_nLin-01,_aEndEnt[1][1]							,"R","0",ctam4)
+
+		If lTNT
+
+		    aRotas := StrTokArr((_cAlias8)->ZV_DESC,"-")
+
+			For _nX:=1 To Len(aRotas)
+
+				If _nX==1
+				MSCBSAY(_nCol+86,_nLin+65,AllTrim(aRotas[_nX])+iif(len(aRotas)>1,">"," "+(_cAlias8)->ZV_SEQ)	,"R","0",ctam5)
+				EndIf
+				If _nX==2
+				MSCBSAY(_nCol+81,_nLin+69,AllTrim(aRotas[_nX])+iif(len(aRotas)>2,">"," "+(_cAlias8)->ZV_SEQ)	,"R","0",ctam5)
+				EndIf
+				If _nX==3
+				MSCBSAY(_nCol+76,_nLin+73,AllTrim(aRotas[_nX])+iif(len(aRotas)>3,">"," "+(_cAlias8)->ZV_SEQ)	,"R","0",ctam5)
+				EndIf
+				If _nX==4
+				MSCBSAY(_nCol+71,_nLin+77,AllTrim(aRotas[_nX])+iif(len(aRotas)>3,">"," "+(_cAlias8)->ZV_SEQ)	,"R","0",ctam5)
+				EndIf
+				If _nX==5
+				MSCBSAY(_nCol+66,_nLin+81,AllTrim(aRotas[_nX])+" "+(_cAlias8)->ZV_SEQ							,"R","0",ctam5)
+				EndIf
+
+			Next
+		
+		EndIF
+
+		//If lBraspress
+		IF lBraspress
+			//FILIAL_SIGLA/ROTA_NUMERO
+			aRotas := MSCBSAY(_nCol+86,_nLin+65,(_cAlias8)->ZV_PARTIDA+"-"+(_cAlias8)->ZV_ROTA	,"R","0",ctam5) 
+		EndIf
+
+		IF lDhl
+			//BLOCO DHL - AUMENTO DE FONTE		20230405004136 - LG
+			//BLOCO DHL - CLIENTES AGENDADOS 	20230405004136 - LG
+			IF SA1->A1_COD $ _cCodDHLacli
+				MSCBBOX(65,70,92,35,110,"B")
+				aRotas := MSCBSAY(_nCol+86,_nLin+65,(_cAlias8)->ZV_PARTIDA+"-"+(_cAlias8)->ZV_ROTA	,"R","0",ctam7,.t.) 
+				MSCBSAY(_nCol+66,_nLin+65,"A G E N D A D O","R","0",ctam5,.t.) 
+			ENDIF
+			aRotas := MSCBSAY(_nCol+76,_nLin+65,(_cAlias8)->ZV_PARTIDA+"-"+(_cAlias8)->ZV_ROTA	,"R","0",ctam7) 
+		EndIf
+
+		cUltiVol := fPegaUltCB9(cPedido,cOs)
+
+		cOrdSep  := SUBSTR(cUltiVol,1,6)
+
+		//calcula soma total dos volumes incluidos
+		cQueryB9 := "SELECT * FROM " +RetSqlName("CB9")
+		cQueryB9 += " WHERE D_E_L_E_T_= ''" 					
+		cQueryB9 += " AND CB9_VOLUME <> ''"
+		cQueryB9 += " AND CB9_ORDSEP = '" +cOrdSep+"'"  	
+
+		PLSQuery(cQueryB9, 'QUERYB9')
+		DbSelectArea('QUERYB9')
+		QUERYB9->(DbGoTop())
+
+		nQtdDig := 0
+		While ! QUERYB9->(EoF())
+
+			nQtdDig += QUERYB9->CB9_QTEEMB
+
+			QUERYB9->(DbSkip())
+
+		ENDDO
+		
+
+		//calcula soma total das quantidades da ordem de separação
+		cQueryC9 := "SELECT * FROM " +RetSqlName("CB9")
+		cQueryC9 += " WHERE D_E_L_E_T_= ''" 					
+		cQueryC9 += " AND CB9_ORDSEP = '" +cOrdSep+"'" 	
+		//cQueryC9 += " AND CB9_VOLUME = ''" 	
+
+		PLSQuery(cQueryC9, 'cQueryC9')
+		DbSelectArea('cQueryC9')
+		cQueryC9->(DbGoTop())
+
+		nTotPedi := 0
+		While ! cQueryC9->(EoF())
+
+			nTotPedi += cQueryC9->CB9_QTESEP
+
+			cQueryC9->(DbSkip())
+
+		ENDDO
+
+
+		If nTotPedi - nQtdDig == 0//Alltrim(cUltiVol) = Alltrim(cVolume)
+			lUltimo  := .T.
+		else
+			lUltimo  := .F.
+		EndIf
+
+		If lUltimo .and. lBraspress 
+			MSCBBOX(45,70,65,35,100,"B")
+			MSCBSAY(_nCol+60,_nLin+70,"ORDEM SEP"						,"R","0",ctam5,.t.)
+			MSCBSAY(_nCol+53,_nLin+73,cOs								,"R","0",ctam6,.t.)
+		Else
+			MSCBSAY(_nCol+60,_nLin+70,"ORDEM SEP"						,"R","0",ctam5)
+			MSCBSAY(_nCol+53,_nLin+73,cOs								,"R","0",ctam6)
+			//MSCBSAY(_nCol+46,_nLin+70,SubStr(cVolume,7,4)+"/XXXX"		,"R","0",ctam6)
+		EndIf
+
+		//FR - 22/06/2021 - #20210621010461 - REVISAR SE DÁ PRA PEGAR O ULTIMO VOLUME
+		If lTNT
+			MSCBSAY(_nCol+46,_nLin+70,SubStr(cVolume,7,4)+"/XXXX"		,"R","0",ctam6)
+		ElseIf lDhl .or. lBraspress
+
+			//Tiago - chamado: 20230607007153 - data: 22/06/2023
+			If lUltimo							
+				MSCBSAY(_nCol+46,_nLin+70,SubStr(cVolume,7,4)+"/" + Substr(cUltiVol,7,4)	,"R","0",ctam6,.T.)
+			Else
+				if nTotPedi - nQtdDig > 0
+					MSCBSAY(_nCol+46,_nLin+70,SubStr(cVolume,7,4)+"/FAMI"		,"R","0",ctam6)
+				endif
+			Endif
+		Endif
+
+		MSCBSAY(_nCol+49,_nLin-01,"OPA"								,"R","0",ctam3)
+		MSCBSAY(_nCol+46,_nLin-01,"EMISSAO: "+DTOC(Date())			,"R","0",ctam3)
+		//MSCBSAY(_nCol+48,_nLin+25,"OTD: "+DTOC(Date())			,"R","0",ctam3)
+
+		//FR - aqui monta o código de barra:
+		If lTNT	//FR - 22/06/2021
+			_cCodTnt := "020380"+PADL(SubStr(cVolume,1,6),9,"0")+PADL((_cAlias8)->ZV_CODIGO,3,"0")+SubStr(cVolume,7,4)+"0000"+PADL((_cAlias8)->ZV_SEQ,3,"0")+"0000"
+			_cUltDig := SubStr(_cCodTnt,Len(_cCodTnt),1)
+		
+		Elseif lBraspress .Or. lDhl
+			//Carga
+			//CEP_INI ;CEP_FIM	;CEP_UF		;FILIAL_SIGLA   ;FILIAL_ID ;ROTA_NUMERO
+			//ZV_CEPDE;ZV_CEPATE	;ZV_DESTINO	;ZV_PARTIDA	 ;ZV_SEQ	  ;ZV_ROTA
+
+			/*
+			//Padrão para Braspress:
+			Tipo 7 – Cliente + O.S + Volume + Rota de Entrega (Rotacep) + Filial de Destino (Rotacep) + Tipo frete.
+			Tipo: 1 caracteres. (Fixo número 7)
+			Cliente: 4 caracteres. (Fixo 379, preenchido com zeros à esquerda)
+			Número Pedido (O.S): 11 caracteres.
+			Volume: 4 caracteres numéricos.
+			Rota de Entrega: 5 caracteres, conforme informado no RotaCEP.
+			Filial de Destino: 4 caracteres, conforme informado no RotaCEP.
+			Tipo de Frete: 1 caractere, sendo; 1 – CIF ou 2 – FOB
+			Obs. Preencher com zeros à esquerda.
+			*/
+			//SubStr(cVolume,7,4)  //O número do volume é um sequencial dentro do campo CB9_VOLUME, as últimas 4 posições deste campo
+			_cVol := SubStr(cVolume,7,4)
+			//PADL(cSeq,5,"0")
+			_cCodTnt := "7"+ "0379" + PADL(cOs,11,"0") + PADL(_cVol,4,"0") + PADL(Alltrim((_cAlias8)->ZV_ROTA),5,"0") + PADL(Alltrim((_cAlias8)->ZV_SEQ),4,"0")+_cTpFrete
+
+		Endif
+
+		//grava a composição do cod barras montado acima:
+		CB6->(RecLock("CB6",.F.))
+		CB6->CB6_XTNT := _cCodTnt		//usado tanto pra TNT qto pra Braspress
+		CB6->(MsUnLock())
+
+		_nLin := 10
+
+		MSCBSAYBAR(08,34,_cCodTnt,"R","MB07",25,.F.,.T.,.F.,,3,2,.T.)
+
+		MSCBSAY(38,06,"Pedido:"+SC5->C5_NUM		  				,"R","0",ctam3l)
+		MSCBSAY(37,30,"VOLUME:"+cSeq			  				,"R","0",ctam32)	//Sequência do volume
+		MSCBSAY(38,62,"Peso (kg): "+cPeso		  				,"R","0",ctam3l)
+		MSCBSAY(38,89,"Tipo:"+cTipVol				  				,"R","0",ctam3l)
+
+		MSCBSAY(97,109,"Conteudo/Contenido:" 	,"R","C","10,10")
+		MSCBSAY(97,139,"Quant"					,"R","C","10,10")
+
+		_nLinIt := 0
+
+		For nX:= 1 to len(aItenPg)
+
+			_nLinIt += 3
+
+			MSCBSAY(97-_nLinIt,109,StrTran(Alltrim(aItenPg[nX,1]),"_","-")		,"R", "F", "20,10",,,,,.T.)
+			MSCBSAY(97-_nLinIt,132,aItenPg[nX,2]								,"R", "F", "20,10",,,,,.T.)
+		Next
+
+		MSCBEND()
+
+	Else
+
+		If Empty(SM0->M0_CGC)
+			cCNPJ := "99.999.999/9999-99"
+		EndIf
+
+		cRegiao := u_regceped(cPedido) // funcao do giovanni totvs para buscar o codigo da regiao
+
+		MSCBINFOETI("Volume","")
+		MSCBBEGIN(1,4,100)
+
+		MSCBLineH(00,01,100,2)
+		MSCBLineH(00,64,100,2)
+
+		MSCBLineH(00,15,85,2)
+		MSCBLineV(85,01,64,2)
+
+		MSCBSAY(05,03,cNReduz										,"N","0","30,30")
+		MSCBSAY(05,07,"Pedido: "+cPedido			  				,"N","F","17,10")
+		MSCBSAY(45,07,"Volume:"+cSeq	+" CX:"+cTipVol				,"N","F","20,10")
+		MSCBSAY(05,11,"Regiao:   "+cRegiao  						,"N","F","20,10")
+		MSCBSAY(45,11,"Peso (kg): "+cPeso							,"N","F","20,10")
+
+		MSCBSAYBAR(07,23,cVolume	,"R",'MB07',10,.F.,.T.,.F.,'C',3,4,.F.,.F.,"1",.T.)
+
+		MSCBSAY(094,003,cPedido										,"R","0","30,60")
+		//FR - 22/06/2021 - #20210621010461
+		If lTNT
+			If GetMv("ST_IMGTNT",,.F.)          //giovani zago 23/03/15 ajuste na etiqueta de volume para a tnt.
+				MSCBSAYBAR(0098,003,SUBSTR(Alltrim(SM0->M0_CGC),1,8) + Alltrim(cVolume)	,"R",'MB07',10,.F.,.F.,.F., ,1.6,1.7,.F.,.F.,"1",.F.)
+			Else
+				MSCBSAYBAR(0098,018,cOs			 ,"R",'MB07',10,.F.,.F.,.F., ,3,4,.F.,.F.,"1",.F.)
+			EndIf
+		Elseif lDhl .or. lBraspress
+			MSCBSAYBAR(0098,018,cOs			 ,"R",'MB07',10,.F.,.F.,.F., ,3,4,.F.,.F.,"1",.F.)
+		Endif
+		//FR - 22/06/2021 - #20210621010461
+
+		MSCBSAY(094,028,"OS "+cOs			 ,"R","0","30,60")
+		MSCBSAY(092,003,cNomEmp				 ,"R","C","10,10")
+		MSCBSAY(089,003,"CNPJ: "+cCNPJ 		 ,"R","C","10,10")
+		MSCBSAY(085,003,cMunici+" "+cUF		 ,"R","0","25,25")
+		MSCBSAY(081,17,"Conteudo/Contenido:" ,"R","C","10,10")
+		MSCBSAY(081,50,"Quant"				 ,"R","C","10,10")
+		nLin := 77
+		For nx:= 1 to len(aItenPg)
+			//MSCBSAY(nLin,17,aItenPg[nX,1]		,"R", "F", "20,10",,,,,.T.)
+			MSCBSAY(nLin,17,StrTran(Alltrim(aItenPg[nX,1]),"_","-")		,"R", "F", "20,10",,,,,.T.)
+			MSCBSAY(nLin,44,aItenPg[nX,2]		,"R", "F", "20,10",,,,,.T.)
+			nLin-=3.5
+		Next
+		MSCBEND()
+
+	EndIf
+
+	If AllTrim(SC5->C5_XORIG)=="2" .And. !Empty(SC5->C5_XNUMWEB) .And. .F.
+		//Rotina retirada desse local pois precisa da NF para imprimir a etiqueta do ML
+
+		DbSelectArea("Z76")
+		Z76->(DbSetOrder(1))            //Z76_FILIAL+Z76_PEDPAI+Z76_PEDFIL
+		If Z76->(DbSeek(xFilial("Z76")+SC5->C5_XNUMWEB))
+
+			_cToken := AllTrim(GetMv("ST_TOKPREC",,"dFA2M0dXWUxzVklOSWljTDY6"))
+			_cUrl	:= AllTrim(GetMv("ST_URLPREC",,"https://www.replicade.com.br/api/v1/"))
+			_cUrl   += "labels/generateLabels?orders="+AllTrim(Z76->Z76_PEDFIL)+"&responseType=zpl
+
+			nTimeOut  := 60
+			_aHeadOut := {}
+			cHeadRet  := ""
+			aAdd( _aHeadOut , "Authorization: Basic "+_cToken)
+			aAdd( _aHeadOut , "Content-Type: application/zip")
+
+			cHttpGet := HttpSGet(_cUrl,"","","","",nTimeOut,_aHeadOut,@cHeadRet)
+
+			If !Empty(cHttpGet)
+
+				oInfo := ""
+				_lRet := FWJsonDeserialize(cHttpGet,@oInfo)
+
+				If _lRet
+					MsgAlert("Atenção, problema ao imprimir etiqueta na PreCode, mensagem de erro: "+AllTrim(oInfo:MENSAGEM))
+					Return
+				EndIf
+
+				cPortaImp := "LPT2"
+
+				_cPstCli := "C:\Temp\"
+				_cPstSer := "\arquivos\etq_mkp\"+SC5->C5_NUM+"\"
+				_cFile   := DTOS(Date())+StrTran(Time(),":","")
+
+				MakeDir(_cPstCli)
+				MakeDir(_cPstSer)
+
+				If File(_cPstSer+_cFile+".zip")
+					FErase(_cPstSer+_cFile+".zip")
+				EndIf
+
+				nHdlImp := FCreate(_cPstSer+_cFile+".zip")
+				If nHdlImp <= 0
+					MsgAlert("Falha na criação do arquivo")
+					Return
+				EndIf
+				FWrite(nHdlImp,cHttpGet)
+				FClose(nHdlImp)
+
+				If File(_cPstCli+"Etiqueta de envio.txt")
+					FErase(_cPstCli+"Etiqueta de envio.txt")
+				EndIf
+				If File(_cPstSer+"Etiqueta de envio.txt")
+					FErase(_cPstSer+"Etiqueta de envio.txt")
+				EndIf
+
+				FUnZip(_cPstSer+_cFile+".zip",_cPstSer)
+				__CopyFile(_cPstSer+"Etiqueta de envio.txt",cPortaImp)
+
+			EndIf
+
+		EndIf
+
+	EndIf
+
+	cEquator := GetMV("ST_CLIEQUA",,"039627#091413#096991#000168")
+
+	If SA1->A1_COD=="014519" //chamado 008307
+	    Conout("Chamando rotina C&C")
+		Conout("CB5_LPT="+CB5->CB5_LPT+" Se for '1', assumirá .F., caso contrario .T. Sera atribuido a variavel _lTNT")
+		ETIQCEC(cOs,cVolume,IIf(CB5->CB5_LPT=="1",.F.,.T.),cLocOri,cLocImp)
+	EndIf
+	If SA1->A1_COD=="092887" //chamado 008172
+		ETIQAMAZON(cOs,cVolume,cLocOri,cLocImp)
+	EndIf
+	If SA1->A1_COD=="011114" //chamado: 20210304003546 - Valdemir Rabelo 08/03/2021
+		ETIQSHARA(cOs,cVolume,cLocOri,cLocImp)
+	EndIf
+	/*   Colocado em chamada via menu
+	If SA1->A1_COD=="054029" //chamado: 20210409005722 - Valdemir Rabelo 31/05/2021
+		ETIQKLIMA(cOs,cVolume,cLocOri,cLocImp)
+	EndIf
+	*/
+	If SA1->A1_COD $ cEquator //chamado 20200703003735 - Valdemir Rabelo 08/07/2020
+		ETIQEQUATO(cOs,cVolume,cLocOri,cLocImp)
+	EndIf
+
+
+Return
+
+/*====================================================================================\
+|Programa  | ETIQCEC         | Autor | RENATO.OLIVEIRA           | Data | 11/10/2018  |
+|=====================================================================================|
+|Descrição | ETIQUETA PADRAO C&C					                                  |
+|          |                                                                          |
+|          |                                                                          |
+|=====================================================================================|
+|Sintaxe   | 		                                                                  |
+|=====================================================================================|
+|Uso       | Especifico STECK                                                         |
+|=====================================================================================|
+|........................................Histórico....................................|
+\====================================================================================*/
+
+Static Function ETIQCEC(cOs,cVolume,_lTnt,cLocOri,cLocImp)
+
+	Local _cQuery1 		:= ""
+	Local _cAlias1		:= GetNextAlias()
+	Local ctamG			:= "035,030"
+	Local ctamG1		:= "055,045"
+	Local ctamM			:= "024,020"
+	Local ctamP			:= "021,018"
+	Local ctamx			:= "018,015"
+	Local nRegs         := 0
+	Local nCount		:= 0
+	Local nSeqPrd		:= 0
+	Local nResult       := 0
+	Default _lTnt		:= .F.
+
+	Conout("Inicio da rotina: ETIQCEC ")
+
+	// Valdemir Rabelo 09/11/2021 - Ticket: 20211105023734
+    _cQuery1 := "DROP TABLE TMPIMG05"
+    nResult  := TCSQLEXEC( _cQuery1 )
+
+	_cQuery1 := " CREATE TABLE TMPIMG05 AS ("
+	_cQuery1 += " SELECT CB9.*,
+	_cQuery1 += " (SELECT COUNT(DISTINCT CB9_VOLUME) FROM "+RetSqlName("CB9")+" XCB9 WHERE XCB9.D_E_L_E_T_=' ' AND XCB9.CB9_FILIAL=CB9.CB9_FILIAL AND XCB9.CB9_ORDSEP=CB9.CB9_ORDSEP)
+	_cQuery1 += " TOTVOL, A1_NOME, B1_DESC, B1_CODBAR, CB7_NOTA, CB7_SERIE, B1_COD
+	_cQuery1 += " FROM "+RetSqlName("CB7")+" CB7
+	_cQuery1 += " LEFT JOIN "+RetSqlName("CB9")+" CB9
+	_cQuery1 += " ON CB9_FILIAL=CB7_FILIAL AND CB9_ORDSEP=CB7_ORDSEP
+	_cQuery1 += " LEFT JOIN "+RetSqlName("SC5")+" C5
+	_cQuery1 += " ON C5_FILIAL=CB7_FILIAL AND C5_NUM=CB7_PEDIDO
+	_cQuery1 += " LEFT JOIN "+RetSqlName("SA1")+" A1
+	_cQuery1 += " ON A1_COD=C5_CLIENTE AND A1_LOJA=C5_LOJACLI
+	_cQuery1 += " LEFT JOIN "+RetSqlName("SB1")+" B1
+	_cQuery1 += " ON B1_COD=CB9_PROD
+	_cQuery1 += " WHERE CB7.D_E_L_E_T_=' ' AND CB9.D_E_L_E_T_=' ' AND C5.D_E_L_E_T_=' ' AND A1.D_E_L_E_T_=' ' AND B1.D_E_L_E_T_=' '
+	_cQuery1 += " AND CB7_FILIAL='"+xFilial("CB7")+"' AND CB7_ORDSEP='"+cOs+"' AND CB9_VOLUME='"+cVolume+"'
+	_cQuery1 += ")"
+	_cQuery1 += " ORDER BY CB9_VOLUME	
+
+	nResult := TCSqlExec( _cQuery1 )
+
+	if nResult < 0
+	   MsgInfo("Ocorreu um problema na execução da query")
+	   Return
+	endif 
+
+	_cQuery1 := " SELECT CB7_NOTA, CB7_SERIE, B1_COD, B1_DESC, TOTVOL, CB9_VOLUME, SUM(CB9_QTEEMB) CB9_QTEEMB, B1_CODBAR	
+	_cQuery1 += " FROM TMPIMG05 "
+	_cQuery1 += " GROUP BY CB7_NOTA, CB7_SERIE, B1_COD, B1_DESC, TOTVOL, CB9_VOLUME, B1_CODBAR
+	
+/*
+	_cQuery1 := " SELECT CB7_NOTA, CB7_SERIE, B1_COD, B1_DESC, TOTVOL, CB9_VOLUME, SUM(CB9_QTEEMB) CB9_QTEEMB, B1_CODBAR
+	_cQuery1 += " FROM (
+	_cQuery1 += " SELECT CB9.*,
+	_cQuery1 += " (SELECT COUNT(DISTINCT CB9_VOLUME) FROM "+RetSqlName("CB9")+" XCB9 WHERE XCB9.D_E_L_E_T_=' ' AND XCB9.CB9_FILIAL=CB9.CB9_FILIAL AND XCB9.CB9_ORDSEP=CB9.CB9_ORDSEP)
+	_cQuery1 += " TOTVOL, A1_NOME, B1_DESC, B1_CODBAR, CB7_NOTA, CB7_SERIE, B1_COD
+	_cQuery1 += " FROM "+RetSqlName("CB7")+" CB7
+	_cQuery1 += " LEFT JOIN "+RetSqlName("CB9")+" CB9
+	_cQuery1 += " ON CB9_FILIAL=CB7_FILIAL AND CB9_ORDSEP=CB7_ORDSEP
+	_cQuery1 += " LEFT JOIN "+RetSqlName("SC5")+" C5
+	_cQuery1 += " ON C5_FILIAL=CB7_FILIAL AND C5_NUM=CB7_PEDIDO
+	_cQuery1 += " LEFT JOIN "+RetSqlName("SA1")+" A1
+	_cQuery1 += " ON A1_COD=C5_CLIENTE AND A1_LOJA=C5_LOJACLI
+	_cQuery1 += " LEFT JOIN "+RetSqlName("SB1")+" B1
+	_cQuery1 += " ON B1_COD=CB9_PROD
+	_cQuery1 += " WHERE CB7.D_E_L_E_T_=' ' AND CB9.D_E_L_E_T_=' ' AND C5.D_E_L_E_T_=' ' AND A1.D_E_L_E_T_=' ' AND B1.D_E_L_E_T_=' '
+	_cQuery1 += " AND CB7_FILIAL='"+xFilial("CB7")+"' AND CB7_ORDSEP='"+cOs+"' AND CB9_VOLUME='"+cVolume+"'
+	_cQuery1 += " ORDER BY CB9_VOLUME
+	_cQuery1 += " ) XXX
+	_cQuery1 += " GROUP BY CB7_NOTA, CB7_SERIE, B1_COD, B1_DESC, TOTVOL, CB9_VOLUME, B1_CODBAR
+*/
+
+	conout("Query que carregará é: "+_cQuery1)
+
+	If !Empty(Select(_cAlias1))
+	    conout("Fechando query aberta Alias: "+_cAlias1)
+		DbSelectArea(_cAlias1)
+		(_cAlias1)->(dbCloseArea())
+	Endif
+
+	dbUseArea(.T.,"TOPCONN",TcGenQry(,,_cQuery1),_cAlias1,.T.,.T.)
+
+	if (_cAlias1)->(!Eof())
+	   Conout("Existem registros a serem apresentados...")
+	endif 
+
+	Count To nRegs
+
+	Conout("Total de registros: "+cValToChar(nRegs))
+	dbSelectArea(_cAlias1)
+	(_cAlias1)->(dbGoTop())
+
+	nSeqPrd := 0
+
+	While (_cAlias1)->(!Eof())
+
+		nCount++
+		nSeqPrd++
+
+		If nSeqPrd==1
+			_nLinha := 0
+			MSCBINFOETI("Volume","")
+			MSCBBEGIN(1,4,100)
+		Else
+			_nLinha := (nSeqPrd*32)-32
+		EndIf
+
+		MSCBSAY(002,003+_nLinha,"FORNEC: "+SM0->M0_NOMECOM,"N","0",ctamG)
+		MSCBSAY(002,008+_nLinha,"CÓDIGO: "+(_cAlias1)->B1_COD,"N","0",ctamG)
+		MSCBSAY(002,013+_nLinha,"PRODUTO: "+(_cAlias1)->B1_DESC,"N","0",ctamG)
+
+		MSCBSAY(005,018+_nLinha,"QTDE","N","0",ctamG1)
+		MSCBSAY(008,024+_nLinha,CVALTOCHAR((_cAlias1)->CB9_QTEEMB),"N","0",ctamG1)
+
+		MSCBSAYBAR(025,018+_nLinha,AllTrim((_cAlias1)->B1_CODBAR),"N",'MB07',10,.F.,.T.,.F., ,3,4,.F.,.F.,"1",.F.)
+
+		MSCBLineH(01,033*nSeqPrd,110,3,"B")
+
+		If _lTnt //imprime 4 produtos por etiqueta
+		    Conout("Variavel _lTNT=.T.")
+		    Conout("A variavel nSeqPrd da linha: 616 contem o conteudo: "+cValToChar(nSeqPrd)+" nCount: "+cValToChar(nCount)+" e nRegs="+cValToChar(nRegs))
+			If nSeqPrd==4 .Or. nCount==nRegs
+				MSCBEND()
+				nSeqPrd := 0
+			EndIf
+		Else //imprime 2 produtos por etiqueta
+		    Conout("A variavel nSeqPrd da linha: 621 contem o conteudo: "+cValToChar(nSeqPrd)+" nCount: "+cValToChar(nCount)+" e nRegs="+cValToChar(nRegs))
+			If nSeqPrd==2 .Or. nCount==nRegs
+			    Conout("Executado o MSCBEND linha: 623")
+				MSCBEND()
+				nSeqPrd := 0
+			EndIf
+		EndIf
+
+		(_cAlias1)->(DbSkip())
+	EndDo
+	conout("Saiu do laço")
+	/*
+	If ! CB5SetImp(cLocImp)
+		MsgAlert("Local de impressão "+cLocImp+" não cadastrado!!!","Atenção")
+		Return
+	EndIf
+	*/
+Return()
+
+/*====================================================================================\
+|Programa  | ETIQAMAZON      | Autor | RENATO.OLIVEIRA           | Data | 11/10/2018  |
+|=====================================================================================|
+|Descrição | ETIQUETA PADRAO AMAZON					                                  |
+|          |                                                                          |
+|          |                                                                          |
+|=====================================================================================|
+|Sintaxe   | 		                                                                  |
+|=====================================================================================|
+|Uso       | Especifico STECK                                                         |
+|=====================================================================================|
+|........................................Histórico....................................|
+\====================================================================================*/
+
+Static Function ETIQAMAZON(cOs,cVolume,cLocOri,cLocImp)
+
+	Local _cQuery1 		:= ""
+	Local _cAlias1		:= GetNextAlias()
+	Local ctamG			:= "035,030"
+	Local ctamG1		:= "120,105"
+	Local ctamM			:= "024,020"
+	Local ctamP			:= "021,018"
+	Local ctamx			:= "018,015"
+	Local nRegs         := 0
+	Local nCount		:= 0
+	/*
+	If ! CB5SetImp(cLocOri)
+		MsgAlert("Local de impressão "+cLocImp+" não cadastrado!!!","Atenção")
+		Return
+	EndIf
+	*/
+	_cQuery1 := " SELECT COUNT(*) CONTADOR
+	_cQuery1 += " FROM (
+	_cQuery1 += " SELECT DISTINCT CB9_PROD
+	_cQuery1 += " FROM "+RetSqlName("CB7")+" CB7
+	_cQuery1 += " LEFT JOIN "+RetSqlName("CB9")+" CB9
+	_cQuery1 += " ON CB9_FILIAL=CB7_FILIAL AND CB9_ORDSEP=CB7_ORDSEP
+	_cQuery1 += " WHERE CB7.D_E_L_E_T_=' ' AND CB9.D_E_L_E_T_=' '
+	_cQuery1 += " AND CB7_FILIAL='"+xFilial("CB7")+"' AND CB7_ORDSEP='"+cOs+"' AND CB9_VOLUME='"+cVolume+"'
+	_cQuery1 += " ) XXX
+
+	If !Empty(Select(_cAlias1))
+		DbSelectArea(_cAlias1)
+		(_cAlias1)->(dbCloseArea())
+	Endif
+
+	dbUseArea(.T.,"TOPCONN",TcGenQry(,,_cQuery1),_cAlias1,.T.,.T.)
+
+	dbSelectArea(_cAlias1)
+	(_cAlias1)->(dbGoTop())
+
+	_lPrim := .T.
+
+	MSCBLOADGRF("cuidado.GRF")
+	MSCBINFOETI("Volume","")
+	MSCBBEGIN(1,4,100)
+
+	If (_cAlias1)->CONTADOR>1
+		MSCBSAY(012,007,"SKU's MISTOS","N","0",ctamG1)
+	EndIf
+
+	DbSelectArea("CB6")
+	CB6->(DbSetOrder(1))
+	CB6->(DbGoTop())
+	If CB6->(DbSeek(xFilial("CB6")+cVolume))
+		If CB6->CB6_XPESO>22
+			MSCBGrafic(028,025,"cuidado",.T.)
+		EndIf
+	EndIf
+
+	MSCBEND()
+	/*
+	If ! CB5SetImp(cLocImp)
+		MsgAlert("Local de impressão "+cLocImp+" não cadastrado!!!","Atenção")
+		Return
+	EndIf
+	*/
+Return()
+
+/*/{Protheus.doc} ETIQEQUATO
+description
+   Rotina para impressao da etiqueta equatorial
+@type function
+@version 
+@author Valdemir Jose
+@since 08/07/2020
+@param cOs, character, param_description
+@param cVolume, character, param_description
+@param _lTnt, param_type, param_description
+@return return_type, return_description
+/*/
+Static Function ETIQEQUATO(cOs,cVolume,cLocOri,cLocImp)
+
+	Local _cQuery1 		:= ""
+	Local _cAlias1		:= GetNextAlias()
+	Local ctamG			:= "035,030"
+	Local ctamG1		:= "055,045"
+	Local ctamM			:= "024,020"
+	Local ctamP			:= "021,018"
+	Local ctamx			:= "018,015"
+	Local nRegs         := 0
+	Local nCount		:= 0
+	Local nSeqPrd		:= 0
+
+	If ! CB5SetImp(cLocOri)
+		MsgAlert("Local de impressão "+cLocImp+" não cadastrado!!!","Atenção")
+		Return
+	EndIf
+
+	_cQuery1 := " SELECT C5_CLIENTE, CB7_NOTA, CB7_SERIE, B1_COD, B1_DESC, TOTVOL, CB9_VOLUME, SUM(CB9_QTEEMB) CB9_QTEEMB, B1_CODBAR, C6_XORDEM, C5_XORDEM
+	_cQuery1 += " FROM (
+	_cQuery1 += " SELECT CB9.*,
+	_cQuery1 += " (SELECT COUNT(DISTINCT CB9_VOLUME) FROM "+RetSqlName("CB9")+" XCB9 WHERE XCB9.D_E_L_E_T_=' ' AND XCB9.CB9_FILIAL=CB9.CB9_FILIAL AND XCB9.CB9_ORDSEP=CB9.CB9_ORDSEP)
+	_cQuery1 += " TOTVOL, A1_NOME, B1_DESC, B1_CODBAR, CB7_NOTA, CB7_SERIE, B1_COD, C6_XORDEM, C5_CLIENTE, C5_XORDEM
+	_cQuery1 += " FROM "+RetSqlName("CB7")+" CB7
+	_cQuery1 += " LEFT JOIN "+RetSqlName("CB8")+" CB8
+	_cQuery1 += " ON CB8_FILIAL=CB7_FILIAL AND CB8_ORDSEP=CB7_ORDSEP
+	_cQuery1 += " LEFT JOIN "+RetSqlName("CB9")+" CB9
+	_cQuery1 += " ON CB9_FILIAL=CB8_FILIAL AND CB9_ORDSEP=CB8_ORDSEP AND CB9_PROD=CB8_PROD AND CB9_ITESEP=CB8_ITEM
+	_cQuery1 += " LEFT JOIN "+RetSqlName("SC5")+" C5
+	_cQuery1 += " ON C5_FILIAL=CB7_FILIAL AND C5_NUM=CB7_PEDIDO
+	_cQuery1 += " LEFT JOIN "+RetSqlName("SC6")+" C6
+	_cQuery1 += " ON CB8_FILIAL=C6_FILIAL AND CB8_PEDIDO=C6_NUM AND CB8_ITEM=C6_ITEM
+	_cQuery1 += " LEFT JOIN "+RetSqlName("SA1")+" A1
+	_cQuery1 += " ON A1_COD=C5_CLIENTE AND A1_LOJA=C5_LOJACLI
+	_cQuery1 += " LEFT JOIN "+RetSqlName("SB1")+" B1
+	_cQuery1 += " ON B1_COD=CB9_PROD
+	_cQuery1 += " WHERE CB7.D_E_L_E_T_=' ' AND CB9.D_E_L_E_T_=' ' AND C5.D_E_L_E_T_=' ' AND A1.D_E_L_E_T_=' ' AND B1.D_E_L_E_T_=' ' AND CB8.D_E_L_E_T_=' ' AND C6.D_E_L_E_T_ = ' '
+	_cQuery1 += " AND CB7_FILIAL='"+xFilial("CB7")+"' AND CB7_ORDSEP='"+cOs+"' AND CB9_VOLUME='"+cVolume+"'
+	_cQuery1 += " ORDER BY CB9_VOLUME
+	_cQuery1 += " ) XXX
+	_cQuery1 += " GROUP BY C5_CLIENTE, CB7_NOTA, CB7_SERIE, B1_COD, B1_DESC, TOTVOL, CB9_VOLUME, B1_CODBAR, C6_XORDEM, C5_XORDEM
+
+	If !Empty(Select(_cAlias1))
+		DbSelectArea(_cAlias1)
+		(_cAlias1)->(dbCloseArea())
+	Endif
+
+	dbUseArea(.T.,"TOPCONN",TcGenQry(,,_cQuery1),_cAlias1,.T.,.T.)
+
+	Count To nRegs
+
+	dbSelectArea(_cAlias1)
+	(_cAlias1)->(dbGoTop())
+
+	nSeqPrd := 0
+
+	While (_cAlias1)->(!Eof())
+
+		nCount++
+		nSeqPrd++
+
+		If nSeqPrd==1
+			_nLinha := 0
+			MSCBINFOETI("Volume","")
+			MSCBBEGIN(1,4,100)
+		Else
+			_nLinha := (nSeqPrd*32)-32
+		EndIf
+
+		MSCBSAY(002,003+_nLinha,"FORNECEDOR STECK",	   "N","0", ctamG)
+		MSCBSAY(002,008+_nLinha,"CÓDIGO: "+(_cAlias1)->B1_COD,		   "N","0", ctamG)
+		MSCBSAY(002,013+_nLinha,"PRODUTO: "+(_cAlias1)->B1_DESC,	   "N","0", ctamG)
+		MSCBSAY(002,018+_nLinha,"COD.SAP: "+(_cAlias1)->C6_XORDEM,"N","0", ctamG)
+		MSCBSAY(002,023+_nLinha,"QUANTIDADE: "+CVALTOCHAR((_cAlias1)->CB9_QTEEMB),"N","0", ctamG)
+		MSCBSAY(002,028+_nLinha,"OC.: "+(_cAlias1)->C5_XORDEM,"N","0", ctamG)
+
+		MSCBSAYBAR(050,018+_nLinha,AllTrim((_cAlias1)->C6_XORDEM),"N",'MB07',10,.F.,.T.,.F., ,3,4,.F.,.F.,"1",.F.)
+
+		MSCBLineH(01,033*nSeqPrd,110,3,"B")
+
+		If nSeqPrd==2 .Or. nCount==nRegs
+			MSCBEND()
+			nSeqPrd := 0
+		EndIf
+
+		(_cAlias1)->(DbSkip())
+	EndDo
+
+	If ! CB5SetImp(cLocImp)
+		MsgAlert("Local de impressão "+cLocImp+" não cadastrado!!!","Atenção")
+		Return
+	EndIf
+
+Return()
+
+
+/*/{Protheus.doc} ETIQSHARA
+description
+Rotina de impressão para cliente TS SHARA
+Chamado: 20210304003546
+@type function
+@version  
+@author Valdemir Jose
+@since 08/03/2021
+@param cOs, character, param_description
+@param cVolume, character, param_description
+@param cLocOri, character, param_description
+@param cLocImp, character, param_description
+@return return_type, return_description
+/*/
+Static Function ETIQSHARA(cOs,cVolume,cLocOri,cLocImp)
+	Local _cQuery1 		:= ""
+	Local _cAlias1		:= GetNextAlias()
+	Local ctamG			:= "035,030"
+	Local ctamG1		:= "055,045"
+	Local ctamM			:= "024,020"
+	Local ctamP			:= "021,018"
+	Local ctamx			:= "018,015"
+	Local nRegs         := 0
+	Local nCount		:= 0
+	Local nSeqPrd		:= 0
+	Local nColPos       := GetMV("ST_COLSHRA",.F.,)
+	Local aDescri       := {}
+	Local nX
+
+	If ! CB5SetImp(cLocOri)
+		MsgAlert("Local de impressão "+cLocImp+" não cadastrado!!!","Atenção")
+		Return
+	EndIf
+
+	_cQuery1 := " SELECT C5_CLIENTE, CB7_NOTA, CB7_SERIE, B1_COD, B1_DESC, TOTVOL, CB9_VOLUME, SUM(CB9_QTEEMB) CB9_QTEEMB, B1_CODBAR, C6_XORDEM, C5_XORDEM, A7_CODCLI, A7_DESCCLI
+	_cQuery1 += " FROM (
+	_cQuery1 += " SELECT CB9.*,
+	_cQuery1 += " (SELECT COUNT(DISTINCT CB9_VOLUME) FROM "+RetSqlName("CB9")+" XCB9 WHERE XCB9.D_E_L_E_T_=' ' AND XCB9.CB9_FILIAL=CB9.CB9_FILIAL AND XCB9.CB9_ORDSEP=CB9.CB9_ORDSEP)
+	_cQuery1 += " TOTVOL, A1_NOME, B1_DESC, B1_CODBAR, CB7_NOTA, CB7_SERIE, B1_COD, C6_XORDEM, C5_CLIENTE, C5_XORDEM, A7_CODCLI, A7_DESCCLI
+	_cQuery1 += " FROM "+RetSqlName("CB7")+" CB7
+	_cQuery1 += " LEFT JOIN "+RetSqlName("CB8")+" CB8
+	_cQuery1 += " ON CB8_FILIAL=CB7_FILIAL AND CB8_ORDSEP=CB7_ORDSEP
+	_cQuery1 += " LEFT JOIN "+RetSqlName("CB9")+" CB9
+	_cQuery1 += " ON CB9_FILIAL=CB8_FILIAL AND CB9_ORDSEP=CB8_ORDSEP AND CB9_PROD=CB8_PROD AND CB9_ITESEP=CB8_ITEM
+	_cQuery1 += " LEFT JOIN "+RetSqlName("SC5")+" C5
+	_cQuery1 += " ON C5_FILIAL=CB7_FILIAL AND C5_NUM=CB7_PEDIDO
+	_cQuery1 += " LEFT JOIN "+RetSqlName("SC6")+" C6
+	_cQuery1 += " ON CB8_FILIAL=C6_FILIAL AND CB8_PEDIDO=C6_NUM AND CB8_ITEM=C6_ITEM
+
+	_cQuery1 += " LEFT JOIN "+RetSqlName("SA7")+" A7
+	_cQuery1 += " ON A7_FILIAL='"+xFilial('SA7')+"' AND a7_cliente = c5_cliente AND a7_loja = c5_lojacli AND a7_produto = cb9_prod AND A7.D_E_L_E_T_ = ' '
+
+	_cQuery1 += " LEFT JOIN "+RetSqlName("SA1")+" A1
+	_cQuery1 += " ON A1_COD=C5_CLIENTE AND A1_LOJA=C5_LOJACLI
+	_cQuery1 += " LEFT JOIN "+RetSqlName("SB1")+" B1
+	_cQuery1 += " ON B1_COD=CB9_PROD
+	_cQuery1 += " WHERE CB7.D_E_L_E_T_=' ' AND CB9.D_E_L_E_T_=' ' AND C5.D_E_L_E_T_=' ' AND A1.D_E_L_E_T_=' ' AND B1.D_E_L_E_T_=' ' AND CB8.D_E_L_E_T_=' ' AND C6.D_E_L_E_T_ = ' '
+	_cQuery1 += " AND CB7_FILIAL='"+xFilial("CB7")+"' AND CB7_ORDSEP='"+cOs+"' AND CB9_VOLUME='"+cVolume+"'
+	_cQuery1 += " ORDER BY CB9_VOLUME
+	_cQuery1 += " ) XXX
+	_cQuery1 += " GROUP BY C5_CLIENTE, CB7_NOTA, CB7_SERIE, B1_COD, B1_DESC, TOTVOL, CB9_VOLUME, B1_CODBAR, C6_XORDEM, C5_XORDEM, A7_CODCLI, A7_DESCCLI
+
+	If !Empty(Select(_cAlias1))
+		DbSelectArea(_cAlias1)
+		(_cAlias1)->(dbCloseArea())
+	Endif
+
+	dbUseArea(.T.,"TOPCONN",TcGenQry(,,_cQuery1),_cAlias1,.T.,.T.)
+
+	Count To nRegs
+
+	dbSelectArea(_cAlias1)
+	(_cAlias1)->(dbGoTop())
+
+	nSeqPrd := 0
+
+	While (_cAlias1)->(!Eof())
+
+		nCount++
+		nSeqPrd++
+
+		If nSeqPrd==1
+			_nLinha := 0
+			MSCBINFOETI("ETIQSHARA","")
+			MSCBBEGIN(1,6)
+			MSCBSAY(05,002+_nLinha,"STECK DISTRIBUIDORA LTDA",	    "N","0", ctamG)
+			MSCBSAY(05,007+_nLinha,"DESCRIÇÃO",	    "N","0", ctamG)
+			MSCBSAY(60,007+_nLinha,"CÓD.SHARA",     "N","0", ctamG)
+			MSCBSAY(80,007+_nLinha,"CÓD. STECK",	"N","0", ctamG)
+		Else
+			_nLinha := ((nSeqPrd*32)-32)
+		EndIf
+		aDescri := getDesc( (_cAlias1)->A7_DESCCLI, 29)
+		if Len(aDescri) > 0
+			For nX := 1 to Len(aDescri)
+				MSCBSAY(05,014+_nLinha, aDescri[nX],   "N","0", ctamG)
+				if nX==1
+					MSCBSAY(60,014+_nLinha, (_cAlias1)->A7_CODCLI,    "N","0", ctamG)
+					MSCBSAY(80,014+_nLinha, (_cAlias1)->B1_COD,	      "N","0", ctamG)
+				endif
+				nSeqPrd++
+				_nLinha := ((nSeqPrd*32)-32)
+			Next
+		else
+			MSCBSAY(05,014+_nLinha, (_cAlias1)->A7_DESCCLI,   "N","0", ctamG)
+			MSCBSAY(60,014+_nLinha, (_cAlias1)->A7_CODCLI,    "N","0", ctamG)
+			MSCBSAY(80,014+_nLinha, (_cAlias1)->B1_COD,	      "N","0", ctamG)
+		endif
+
+		If nSeqPrd==2 .Or. nCount==nRegs
+			MSCBEND()
+			nSeqPrd := 0
+		EndIf
+
+		(_cAlias1)->(DbSkip())
+	EndDo
+
+	If ! CB5SetImp(cLocImp)
+		MsgAlert("Local de impressão "+cLocImp+" não cadastrado!!!","Atenção")
+		Return
+	EndIf
+
+Return
+
+
+/*/{Protheus.doc} getDesc
+description
+Rotina para tratar campo descrição
+@type function
+@version  
+@author Valdemir Jose
+@since 29/03/2021
+@param pDescri, param_type, param_description
+@param pTam, param_type, param_description
+@return return_type, return_description
+/*/
+Static Function getDesc( pDescri, pTam )
+	Local aRET    := {}
+	Local nPos    := 1
+	Local nX      := 1
+	Local nQtdLin := 0
+	Local cDesc   := pDescri
+
+	if (val(Right(cValToChar(Round(Len(pDescri)/pTam,1)),1)) > 0)
+		nQtdLin := int(Len(pDescri)/pTam)+1
+	else
+		nQtdLin := int(Len(pDescri)/pTam)
+	endif
+
+	if nQtdLin < 1
+		nQtdLin := 1
+	endif
+
+	For nX := 1 to nQtdLin
+		if !Empty(Substr(cDesc, nPos, pTam))
+			aAdd(aRET, Substr(cDesc, nPos, pTam) )
+		Endif
+		nPos += pTam
+	next
+
+Return aRET
+
+//----------------------------------------------------------------------------------//
+//Função : FPegaUltCB9
+//Autoria: Flávia Rocha
+//Data   : 23/06/2021
+//Objetivo: Função para trazer o último volume na CB9
+//----------------------------------------------------------------------------------//
+Static Function fPegaUltCB9(cPedido,cOs)
+	Local cQuery := ""
+	Local cUltiV := ""
+
+
+	/*	
+	cQuery := " SELECT MAX(CB9_VOLUME) AS ULTIVOL FROM " + RetSqlName("CB9")  + " CB9 "
+	cQuery += " WHERE CB9.D_E_L_E_T_ <> '*' "
+	cQuery += " AND SUBSTRING(CB9_VOLUME,1,6) = '" + cVolume + "' "
+	cQuery += " AND CB9_FILIAL = '" + xFilial("CB9") + "' "
+	*/
+
+	cQuery := " SELECT Max(CB6_VOLUME) ULTIVOL FROM "+RetSqlName("CB6")
+	cQuery += " WHERE CB6_PEDIDO = '"+cPedido+"'
+	cQuery += " AND SubStr(CB6_VOLUME,1,6) =   '"+cOs+"'
+ 	cQuery += " AND CB6_FILIAL = '"+cFilant+"'
+	cQuery += " AND D_E_L_E_T_ = ' '
+
+	cQuery := ChangeQuery( cQuery )
+
+	If Select("TMPXX") > 0
+		dbSelectArea("TMPXX")
+		TMPXX->(dbCloseArea())
+	EndIf
+
+	dbUseArea( .T., "TOPCONN", TcGenQry(,,cQuery), "TMPXX", .T., .F. )
+	DbSelectArea("TMPXX")
+	DbGoTop()
+
+	If TMPXX->(!Eof())
+		cUltiV := TMPXX->ULTIVOL
+	Endif
+
+Return(cUltiV)
+
+/*/{Protheus.doc} ETIQKLIMA
+description
+Rotina para impressão da Etiqueta
+@type function
+@version 1.00 
+@author Valdemir Jose
+@since 31/05/2021
+@param cOs, character, param_description
+@param cVolume, character, param_description
+@param cLocOri, character, param_description
+@param cLocImp, character, param_description
+@return return_type, return_description
+/*/
+Static Function ETIQKLIMA(cOs,cLocOri,cLocImp)
+	Local _cQuery1 		:= ""
+	Local _cAlias1		:= GetNextAlias()
+	Local ctamG			:= "035,030"
+	Local ctamM			:= "030,025"
+	Local nRegs         := 0
+	Local nCount		:= 0
+	Local nSeqPrd		:= 0
+	Local aDescri       := {}
+	Local nX
+
+	If ! CB5SetImp(cLocOri)
+		MsgAlert("Local de impressão "+cLocImp+" não cadastrado!!!","Atenção")
+		Return
+	EndIf
+
+	_cQuery1 := " SELECT C5_CLIENTE, CB7_NOTA, CB7_SERIE, B1_COD, B1_DESC, TOTVOL, CB9_VOLUME, SUM(CB9_QTEEMB) CB9_QTEEMB, B1_CODBAR, C6_XORDEM, C5_XORDEM, A7_CODCLI, A7_DESCCLI
+	_cQuery1 += " FROM (
+	_cQuery1 += " SELECT CB9.*,
+	_cQuery1 += " (SELECT COUNT(DISTINCT CB9_VOLUME) FROM "+RetSqlName("CB9")+" XCB9 WHERE XCB9.D_E_L_E_T_=' ' AND XCB9.CB9_FILIAL=CB9.CB9_FILIAL AND XCB9.CB9_ORDSEP=CB9.CB9_ORDSEP)
+	_cQuery1 += " TOTVOL, A1_NOME, B1_DESC, B1_CODBAR, CB7_NOTA, CB7_SERIE, B1_COD, C6_XORDEM, C5_CLIENTE, C5_XORDEM, A7_CODCLI, A7_DESCCLI
+	_cQuery1 += " FROM "+RetSqlName("CB7")+" CB7
+	_cQuery1 += " LEFT JOIN "+RetSqlName("CB8")+" CB8
+	_cQuery1 += " ON CB8_FILIAL=CB7_FILIAL AND CB8_ORDSEP=CB7_ORDSEP
+	_cQuery1 += " LEFT JOIN "+RetSqlName("CB9")+" CB9
+	_cQuery1 += " ON CB9_FILIAL=CB8_FILIAL AND CB9_ORDSEP=CB8_ORDSEP AND CB9_PROD=CB8_PROD AND CB9_ITESEP=CB8_ITEM
+	_cQuery1 += " LEFT JOIN "+RetSqlName("SC5")+" C5
+	_cQuery1 += " ON C5_FILIAL=CB7_FILIAL AND C5_NUM=CB7_PEDIDO
+	_cQuery1 += " LEFT JOIN "+RetSqlName("SC6")+" C6
+	_cQuery1 += " ON CB8_FILIAL=C6_FILIAL AND CB8_PEDIDO=C6_NUM AND CB8_ITEM=C6_ITEM
+
+	_cQuery1 += " LEFT JOIN "+RetSqlName("SA7")+" A7
+	_cQuery1 += " ON A7_FILIAL='"+xFilial('SA7')+"' AND a7_cliente = c5_cliente AND a7_loja = c5_lojacli AND a7_produto = cb9_prod AND A7.D_E_L_E_T_ = ' '
+
+	_cQuery1 += " LEFT JOIN "+RetSqlName("SA1")+" A1
+	_cQuery1 += " ON A1_COD=C5_CLIENTE AND A1_LOJA=C5_LOJACLI
+	_cQuery1 += " LEFT JOIN "+RetSqlName("SB1")+" B1
+	_cQuery1 += " ON B1_COD=CB9_PROD
+	_cQuery1 += " WHERE CB7.D_E_L_E_T_=' ' AND CB9.D_E_L_E_T_=' ' AND C5.D_E_L_E_T_=' ' AND A1.D_E_L_E_T_=' ' AND B1.D_E_L_E_T_=' ' AND CB8.D_E_L_E_T_=' ' AND C6.D_E_L_E_T_ = ' '
+	_cQuery1 += " AND CB7_FILIAL='"+xFilial("CB7")+"' AND CB7_ORDSEP='"+cOs+"' 
+	/*
+	if !Empty(cVolume)
+	   _cQuery1 += " AND CB9_VOLUME='"+cVolume+"' 
+	endif 
+	*/
+	_cQuery1 += " ORDER BY CB9_VOLUME
+	_cQuery1 += " ) XXX
+	_cQuery1 += " GROUP BY C5_CLIENTE, CB7_NOTA, CB7_SERIE, B1_COD, B1_DESC, TOTVOL, CB9_VOLUME, B1_CODBAR, C6_XORDEM, C5_XORDEM, A7_CODCLI, A7_DESCCLI
+
+	If !Empty(Select(_cAlias1))
+		DbSelectArea(_cAlias1)
+		(_cAlias1)->(dbCloseArea())
+	Endif
+
+	dbUseArea(.T.,"TOPCONN",TcGenQry(,,_cQuery1),_cAlias1,.T.,.T.)
+
+	Count To nRegs
+
+	dbSelectArea(_cAlias1)
+	(_cAlias1)->(dbGoTop())
+
+	nSeqPrd := 0
+
+	While (_cAlias1)->(!Eof())
+
+		if !Empty((_cAlias1)->CB7_NOTA)
+
+			nCount++
+			nSeqPrd++
+			If nSeqPrd==1
+				_nLinha := 70
+				MSCBINFOETI("ETQKLIMA","")
+				//MSCBPrinter("ETIQUETA","LPT1",6)      // Liberado para Valdemir fazer TESTE comentar após uso
+				MSCBBEGIN(1,6)
+				MSCBSAY( 80, 03, "STECK IND ELETRICA LTDA",	    "R","0", ctamG)
+				MSCBSAY( 75, 03, "Descrição",	  "R","0", ctamG)
+				MSCBSAY( 75, 50, "CÓD.Cliente",   "R","0", ctamM)
+				MSCBSAY( 75, 70, "CÓD.Steck",	  "R","0", ctamG)
+				MSCBSAY( 75, 90, "Nota Fiscal",   "R","0", ctamG)
+			Else
+				_nLinha -= 5    //((nSeqPrd*32)-32)
+			EndIf
+			aDescri := getDesc( (_cAlias1)->A7_DESCCLI, 24)
+			if Len(aDescri) > 0
+				For nX := 1 to Len(aDescri)
+					MSCBSAY(_nLinha, 03,  aDescri[nX],   "R","0", ctamG)
+					if nX==1
+						MSCBSAY(  _nLinha, 50,  (_cAlias1)->A7_CODCLI,    "R","0", ctamM)
+						MSCBSAY(  _nLinha, 70,  (_cAlias1)->B1_COD,       "R","0", ctamG)
+						MSCBSAY(  _nLinha, 90,  (_cAlias1)->CB7_NOTA,     "R","0", ctamG)
+					endif
+					nSeqPrd++
+					_nLinha -= 5     //((nSeqPrd*32)-32)
+				Next
+			else
+				MSCBSAY(  _nLinha,  03,  (_cAlias1)->A7_DESCCLI,   "R","0", ctamG)
+				MSCBSAY(  _nLinha,  50,  (_cAlias1)->A7_CODCLI,    "R","0", ctamM)
+				MSCBSAY(  _nLinha,  70,  (_cAlias1)->B1_COD,	   "R","0", ctamG)
+				MSCBSAY(  _nLinha,  90,  (_cAlias1)->CB7_NOTA,     "R","0", ctamG)
+				_nLinha -= -5     //((nSeqPrd*32)-32)
+			endif
+
+			If nSeqPrd==2 .Or. nCount==nRegs
+				MSCBEND()
+				nSeqPrd := 0
+			EndIf
+		Endif
+		(_cAlias1)->(DbSkip())
+	EndDo
+
+	If ! CB5SetImp(cLocOri)
+		MsgAlert("Local de impressão "+cLocImp+" não cadastrado!!!","Atenção")
+		Return
+	EndIf
+
+Return
+
+/*/{Protheus.doc} STETIQNF
+description
+Rotina de fazer impressão do Etiqueta do Cliente c/ NF
+Ticket: 20210409005722
+@type function
+@version  
+@author Valdemir Jose
+@since 18/06/2021
+@return return_type, return_description
+u_STETIQNF
+/*/
+User Function STETIQNF()
+	Local aParam  := {}
+	Local aConfig := {}
+	Local _cOS    := CriaVar("CB7_ORDSEP")
+	Local _cVolume:= CriaVar("CB9_VOLUME")
+	Local _cLocImp:= Space(6)
+
+	aAdd(aParam,{1,"Ordem Separação"	,_cOS	    ,"@!","u_vldORDS()","CB7","",60,.T.})
+	//aAdd(aParam,{1,"Volume"				,_cVolume   ,"@!",".T.",        ""   ,"",60,.F.})
+	aAdd(aParam,{1,"Impressora:"	    ,_cLocImp	,"@!",".T.",        "CB5","",60,.T.})
+
+	If !ParamBox(aParam,"Etiqueta Cliente NF",aConfig, {|| .T.},,.F.,90,15)
+	   Return
+	Endif 
+
+	_cOS     := MV_PAR01
+	//_cVolume := MV_PAR02
+	_cLocImp := MV_PAR02
+	ETIQKLIMA(_cOS,_cLocImp,"")
+	//FWMsgRun(,{|| ETIQKLIMA(_cOS,_cLocImp,"") },"Aguarde...","Iniciando a impressão da etiqueta")
+
+Return 
+
+/*/{Protheus.doc} vldORDS
+description
+Rotin que faz a validação se existe nota fiscal na ordem separação
+@type function
+@version  
+@author Valdemir Jose
+@since 18/06/2021
+@return return_type, return_description
+/*/
+User Function vldORDS()
+	Local lRET := .F.
+	Local aArea:= GetArea()
+
+	dbSelectArea("CB7")
+	dbSetOrder(1)
+	if dbSeek(xFilial("CB7")+MV_PAR01)
+       lRET := (!Empty(CB7->CB7_NOTA))
+	ENDIF 
+	RestArea( aArea )
+
+	if !lRET 
+       FWMsgRun(,{|| Sleep(4000)},"Informativo","Ordem Separação não contem nota fiscal.")
+	endif 
+
+Return lRET

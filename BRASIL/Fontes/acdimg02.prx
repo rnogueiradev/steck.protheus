@@ -1,0 +1,70 @@
+/*
+Padrao Zebra
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³IMG02     ºAutor  ³Sandro Valex        º Data ³  19/06/01   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³Ponto de entrada referente a imagem de identificacao da     º±±
+±±º          ³endereco                                                    º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP5                                                        º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function Img02() // imagem de etiqueta de ENDERECO
+	Local cCodigo
+	Local cPortaImp := MV_PAR05 //>> Chamado 008663 - Everson Santana
+	Local cCodID := paramixb[1]
+	Local _cSeta := ''
+	Local _cDirec:= ''
+
+	If cCodID # NIL
+		cCodigo := cCodID
+	ElseIf Empty(SBE->BE_IDETIQ)
+		cCodigo :=SBE->(BE_LOCAL+BE_LOCALIZ)
+	Else
+		cCodigo :=SBE->(BE_LOCAL+BE_LOCALIZ)
+	Endif
+	_cSeta  :=SBE->BE_XSETA
+	cCodigo := Alltrim(cCodigo)
+	If _cSeta = '1'
+		MSCBLOADGRF("cima.GRF") 
+		_cDirec:= 'cima'
+	ELseIf _cSeta = '2'
+		MSCBLOADGRF("baixo.GRF") 
+		_cDirec:='baixo'
+	Endif
+	//>> Chamado 008663 - Everson Santana
+	If ! CB5SetImp(cPortaImp)
+		MsgAlert("Local de Impressão "+cPortaImp+" nao Encontrado!") //"Local de Impressão "###" nao Encontrado!"
+		Return .f.
+	Endif
+	//<< Chamado 008663
+	 
+	//MSCBPrinter("ZEBRA",cPorta,,60,.F.,,,,,,.F.,)
+	//MSCBPrinter("ZEBRA",cPortaImp,,,.F.) //>> Chamado 008663 - Everson Santana (Retirado)
+	//MSCBLOADGRF("Z0100.GRF")
+	MSCBChkStatus(.F.)
+
+	MSCBBEGIN(1,6)
+	//MSCBChkStatus(.F.)
+	//MSCBBOX(30,05,76,05)
+	//MSCBBOX(02,12.7,76,12.7)
+	//MSCBBOX(02,21,76,21)
+	//MSCBBOX(30,01,30,12.7,3)
+
+	MSCBGRAFIC(85,5,_cDirec,.f.)
+	MSCBSAY(018,016,'ENDERECO:',"N","0","050,035")
+	//MSCBSAY(006,015,"CODIGO","N","A","030,030")
+	MSCBSAY(018,025, AllTrim(SBE->BE_LOCALIZ),"N","1","099,065")
+	//MSCBSAY(006,025,"DESCRICAO","N","A","012,008")
+	//MSCBSAY(006,030,SBE->BE_DESCRIC,"N", "0", "020,030")
+	//MSCBSAYBAR(006,035,cCodigo,"N","MB07",8.36,.F.,.T.,.F.,,2,1,.F.,.F.,"1",.T.) // Local+Almox
+	MSCBSAYBAR(008,039,cCodigo,"N","MB07",10.36,.F.,.T.,.F.,,5,1,.F.,.F.,"1",.T.) //impressao endereco
+	//MSCBInfoEti("Endereco","30X100")
+	MSCBEND()
+	MSCBCLOSEPRINTER()
+Return .F.

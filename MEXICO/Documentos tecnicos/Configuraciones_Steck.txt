@@ -1,0 +1,86 @@
+FUENTES
+
+PEDFAT		Programa para Impresión de Pedido de Venta	
+EFAT005R	Programa para Impresión de Remision de Salida	
+EFAT002B	programa para impresión de NF y NCC	
+COTFAT		Formato de Impresión de Presupuestos	
+MT410INC	Punto de entrada para mandar imprimir el Pedido de venta al confirmar su grabacion o copia	
+LOCXPE33	Punto de entrada para agregar Campos en cabecera de Remision de Salida cuando es realizada manualmente	
+M462GRV		Punto de entrada utilizado para grabar en SF2 los datos de tipo de entrega, Paqueteria, tipo de sercicio, Destino y convenio tomando los datos desde el pedido de venta SC5	
+M475IMPPER	Punto de entrada para mandar el formato personalizado de la factura de Venta y Nota de Credito	
+PDFFAC		Programa Auxiliar en la impresión de NCC y NF , su funcion es llamada desde M475IMPER	
+MA410MNU	Punto de entrada para agregar opcion al menu para imprimir el Pedido desde la pantalla de Pedidos	
+MT410TOK	Punto de entrada ejecutado al confirmar el Pedido de Venta , es utilizado para validar que no hayan dejado sin informar los datos de tipo de entrega, Paqueteria, tipo de sercicio, Destino y convenio	
+MT462MNU	Punto de entrada para agregar Boton para imprimir diferentes documentos (remision de Salida, Nota de Credito, Factura de venta)	
+SF2460I		Punto de entrada para grabar en la tabla SF2  la forma de pago y orden de compra tomando los datos desde la tabla SC5	
+MSD2460		Punto de entrada para grabar observaciones del pedio de venta a la remision/Factura	
+MTA416PV	Punto de entrada para grabar Uso CFDI y Forma de pago desde presupuesto a Pedido de venta	
+MA020TDOK	para grabar los Proveedores como Item contable	
+PEDFACT		Formato de Pedido de Venta	
+
+TABLAS
+Z1	Tabla para definir los tipos de entrega	
+Z2	Tabla para definir los tipos de paqueteria	
+
+
+CAMPOS			
+TABLA	CAMPO		
+SC6	C6_OBS			Observaciones en Pedidos de Venta
+SD2	D2_OBS			Observaciones en Remision
+SCJ	CJ_MENNOTA		Mensaje en Presupuesto
+SCJ	CJ_VEND			Se agrego codigo de vendedor en Presupuesto
+SA1	A1_FPAGO		Campo para definir la Forma de Pago en Cliente
+SA1	A1_USOCFDI		Campo para definir Uso CFDI en Cliente 
+SA2	A2_CTAANT		Campo para definir cuenta de Anticipo en Proveedor
+SA2	A2_INTERCO		Campo para indicar si el proveedor es Intercompany
+SF4	F4_CTAVTA		Campo para definir la cuienta contable de acuerdo al TES
+SF4	F4_CTADES		Campo para definir la cuenta de Descuento de Ventas de acuerdo al Tes
+SC5	C5_FPAGO		Campo para la Forma de Pago en Pedido de Venta
+SCJ	CJ_USOCFDI		Campo para definir uso CFDI desde presupuesto
+SCJ	CJ_FPAGO		Campo para definir la forma de Pago desde Presupuesto
+SC5	C5_DESTINO		Campo para identificar el Destino
+SC5	C5_TIPOENT		Campo para deifnir tipo de entrega 
+SC5	C5_PAQUET		Campo para definir la paqueteria 
+SC5	C5_TIPOSER		Campo para definir tipo de servicio
+SC5	C5_CONVENI		Campo para definir el convenio con la paqueteria
+SA1	A1_CTAANT		Campo para deifnir la cuenta de anticipo en cliente
+SA1	A1_INTERCO		Campo para deifnir si el cliente es intercompany
+SC9	C9_CANTENT		Campo para mostrar la cantidad entregada (Virtual)
+SC9	C9_SALDO		Campo para mostrar el saldo (Virtual)
+SC9	C9_QTDORI		Campo para mostrar la canti Original (Virtual)
+SCK	CK_SALDO		Campo para mostrar el saldo (Virtual)
+SC5	C5_NOMBRE		Campo para mostrar el nombre en el Pedido de venta
+SF2	F2_ORDENC		Campo para grabar la Orden de compra en la factura
+SC5	C5_ORDENC		Campo para captura de la Orden de compra del cliente en el pedido
+SF2	F2_FPAGO		Campo para grabar la forma de pago en la factura
+SF2	F2_TIPOENT		Campo para grabar el tipo de entrega en la factura
+SF2	F2_PAQUET		Campo para grabar la paqueteria en la factura
+SF2	F2_TIPOSER		Campo para grabar el tipo de servicio en la factura
+SF2	F2_DESTINO		Campo para grabar el destino en la factura
+SF2	F2_CONVENI		Campo para grabar el Convenio en la factura
+
+
+
+GATILLOS					
+dominio				Regla																										Contradominio						
+D2_QUANT  			NoRound(M->D2_PRCVEN*M->D2_QUANT,TamSX3("D2_TOTAL")[2])                                             		D2_TOTAL  
+D2_PRCVEN 			NoRound(M->D2_PRCVEN*M->D2_QUANT,TamSX3("D2_TOTAL")[2])                                             		D2_TOTAL  
+CK_PRODUTO			M->CK_SALDO:= SB2->B2_QATU                                                                          		CK_SALDO  
+CK_LOCAL  			M->CK_SALDO:= SB2->B2_QATU                                                                          		CK_SALDO  
+CJ_CLIENTE			SA1->A1_USOCFDI                                                                                     		CJ_USOCFDI
+CJ_LOJA				SA1->A1_USOCFDI                                                                                     		CJ_USOCFDI
+CJ_CLIENTE			SA1->A1_FPAGO                                                                                       		CJ_FPAGO  
+CJ_LOJA				SA1->A1_FPAGO                                                                                       		CJ_FPAGO  
+C5_CLIENTE			M->C5_RESIDE:=POSICIONE("SA1",1,XFILIAL("SA1")+M->C5_CLIENTE+M->C5_LOJACLI,"A1_PAIS")               		C5_RESIDE 
+C5_CLIENTE			POSICIONE("SA1",1,XFILIAL("SA1")+M->C5_CLIENTE+M->C5_LOJACLI,"A1_NIF")                              		C5_IDTRIB 
+C5_CLIENTE			RecMoeda(M->C5_EMISSAO,M->C5_MOEDA)                                                                 		C5_TXMOEDA
+C5_CLIENTE			POSICIONE("SA1",1,XFILIAL("SA1")+M->C5_CLIENTE+M->C5_LOJACLI,"A1_NATUREZ")                          		C5_NATUREZ
+C5_CLIENTE			POSICIONE("SA1",1,XFILIAL("SA1")+M->C5_CLIENTE+M->C5_LOJACLI,"A1_FPAGO")                            		C5_FPAGO  
+C5_CLIENTE			POSICIONE("SA1",1,XFILIAL("SA1")+M->C5_CLIENTE+M->C5_LOJACLI,"A1_USOCFDI")                          		C5_USOCFDI
+C5_LOJACLI			POSICIONE("SA1",1,XFILIAL("SA1")+M->C5_CLIENTE+M->C5_LOJACLI,"A1_NIF")                              		C5_IDTRIB 
+C5_LOJACLI			RecMoeda(M->C5_EMISSAO,M->C5_MOEDA)                                                                 		C5_TXMOEDA
+C5_LOJACLI			POSICIONE("SA1",1,XFILIAL("SA1")+M->C5_CLIENTE+M->C5_LOJACLI,"A1_NATUREZ")                          		C5_NATUREZ
+C5_LOJACLI			POSICIONE("SA1",1,XFILIAL("SA1")+M->C5_CLIENTE+M->C5_LOJACLI,"A1_FPAGO")                            		C5_FPAGO  
+C5_LOJACLI			POSICIONE("SA1",1,XFILIAL("SA1")+M->C5_CLIENTE+M->C5_LOJACLI,"A1_USOCFDI")                          		C5_USOCFDI
+
+

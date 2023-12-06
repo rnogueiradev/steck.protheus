@@ -1,0 +1,75 @@
+#include "rwmake.ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³PAGAGEN   ºAutor  ³                    º Data ³  07/07/06   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³INFORMA O CODIGO DA AGENCIA DO FORNECEDOR                   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³CNAB A PAGAR BRADESCO (POSICOES 99 - 104)                   º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function Pagagen()
+
+SetPrvt("_AGENCIA,_RETDIG,_DIG1,_DIG2,_DIG3,_DIG4")
+SetPrvt("_MULT,_RESUL,_RESTO,_DIGITO")
+
+
+IF SEA->EA_MODELO$"01/02/03/05/08/41/43" 	// CREDITO EM C.C. / CHEQUE / DOC / CREDITO EM CONTA POUPANCA / TED
+	
+	_cBanco  := Alltrim(SA2->A2_BANCO)
+	_Agencia := Alltrim(SA2->A2_AGENCIA)
+	_nPosDV  := AT("-",SA2->A2_AGENCIA)
+	
+	If _nPosDV != 0
+		_Agencia := Alltrim(Substr(SA2->A2_AGENCIA,1,_nPosDV-1))
+		_RETDIG	 := Alltrim(Substr(SA2->A2_AGENCIA,_nPosDV+1,Len(Alltrim(SA2->A2_AGENCIA))-_nPosDV))
+	Else
+		_Agencia := Alltrim(SA2->A2_AGENCIA)
+		_RETDIG	 := Alltrim(SA2->A2_X_DVAGE)
+	Endif
+	
+	If _cBanco != "237"
+		_RETDIG := Space(1)
+	Endif
+	
+	_Agencia := REPL("0",6-Len(_Agencia+_RETDIG))+_Agencia+_RETDIG
+	
+Else
+	
+	_Agencia := "000000"
+	_cBanco := SUBSTR(SE2->E2_CODBAR,1,3)
+	If _cBanco == "237"	// BRADESCO
+		If LEN(Alltrim(SE2->E2_CODBAR))==44
+			_Agencia  :=  "0" + SUBSTR(SE2->E2_CODBAR,20,4)
+			_RETDIG := " "
+			_DIG1   := SUBSTR(SE2->E2_CODBAR,20,1)
+			_DIG2   := SUBSTR(SE2->E2_CODBAR,21,1)
+			_DIG3   := SUBSTR(SE2->E2_CODBAR,22,1)
+			_DIG4   := SUBSTR(SE2->E2_CODBAR,23,1)
+		Else
+			_Agencia  :=  "0" + SUBSTR(SE2->E2_CODBAR,5,4)
+			_RETDIG := " "
+			_DIG1   := SUBSTR(SE2->E2_CODBAR,5,1)
+			_DIG2   := SUBSTR(SE2->E2_CODBAR,6,1)
+			_DIG3   := SUBSTR(SE2->E2_CODBAR,7,1)
+			_DIG4   := SUBSTR(SE2->E2_CODBAR,8,1)
+		Endif
+		
+		// Efetua o calculo do digito verificador
+		
+		_MULT   := (VAL(_DIG1)*5) +  (VAL(_DIG2)*4) +  (VAL(_DIG3)*3) +   (VAL(_DIG4)*2)
+		_RESUL  := INT(_MULT /11 )
+		_RESTO  := INT(_MULT % 11)
+		_DIGITO := 11 - _RESTO
+		_RETDIG := IF( _RESTO == 0,"0",IF(_RESTO == 1,"0",ALLTRIM(STR(_DIGITO))))
+		_Agencia:= _Agencia + _RETDIG
+	EndIf
+Endif
+
+Return(_Agencia)

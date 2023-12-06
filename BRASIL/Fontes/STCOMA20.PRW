@@ -1,0 +1,468 @@
+#INCLUDE "TOTVS.CH"
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "TBICONN.CH"
+#INCLUDE "TOPCONN.CH"
+
+/*/{Protheus.doc} STCOMA20
+@name STCOMA20
+@type User Function
+@desc gerar fornecedores portal.
+@author Renato Nogueira
+@since 17/05/2018
+/*/
+
+User Function STCOMA20()
+
+	Local cNewEmp 	:= "01"
+	Local cNewFil	:= "01"
+
+	RpcSetType( 3 )
+	RpcSetEnv( cNewEmp, cNewFil,,,"FAT")
+
+	If !LockByName("STCOMA20",.F.,.F.,.T.)
+		ConOut("[STCOMA20]["+ FWTimeStamp(2) +"] - Já existe uma sessão em processamento.")
+		Return()
+	EndIf
+
+	ConOut(CRLF + "[STCOMA20]["+ FWTimeStamp(2) +"] Inicio do processamento.")	
+
+	SM0->(DBGoTop())
+	While SM0->(!Eof())
+		If SM0->M0_CODIGO$"01#03" .And. SM0->M0_CODFIL=="01"
+			ConOut(CRLF + "[STCOMA21]["+ FWTimeStamp(2) +"] Inicio do processamento da empresa "+SM0->(M0_CODIGO+M0_CODFIL))	
+			StartJob("U_STCOMA21",GetEnvServer(),.T.,SM0->M0_CODIGO,SM0->M0_CODFIL)
+			ConOut(CRLF + "[STCOMA21]["+ FWTimeStamp(2) +"] Fim do processamento da empresa "+SM0->(M0_CODIGO+M0_CODFIL))	
+		EndIf
+		SM0->(DbSkip())
+	EndDo
+
+	ConOut("[STCOMA20]["+ FWTimeStamp(2) +"] Fim do processamento")
+
+	UnLockByName("STCOMA20",.F.,.F.,.T.)
+
+	Reset Environment
+
+Return
+
+/*/{Protheus.doc} STCOMA21
+@name STCOMA21
+@type User Function
+@desc gerar cadastro de fornecedores no portal
+@author Renato Nogueira
+@since 17/05/2018
+/*/
+
+User Function STCOMA21(cNewEmp,cNewFil,_lJob,_cCod,_cLoja)
+
+	Local _cQuery9 := ""
+	Local _cAlias9 := ""
+	Local _aRegs   := {}
+	Local _nX	   := 0
+	Local _lReturn := .F.
+	Default _lJob  := .T.
+	Default _cCod  := ""
+	Default _cLoja := ""
+
+	If _lJob
+		RpcSetType( 3 )
+		RpcSetEnv( cNewEmp, cNewFil,,,"FAT")
+	EndIf
+
+	_cAlias9 := GetNextAlias()
+
+	AADD(_aRegs,'ACAA730')
+	AADD(_aRegs,'ACSP')
+	AADD(_aRegs,'ANALISAREC')
+	AADD(_aRegs,'BAIXANCC')
+	AADD(_aRegs,'BILL')
+	AADD(_aRegs,'BIWSECMINTEGRATION')
+	AADD(_aRegs,'CAASADM')
+	AADD(_aRegs,'CAASCTBMOVIMENTOS')
+	AADD(_aRegs,'CFGDICTIONARY')
+	AADD(_aRegs,'CFGSTANDARDTABLES')
+	AADD(_aRegs,'CFGTABLE')
+	AADD(_aRegs,'CFGVALIDATION')
+	AADD(_aRegs,'CRDCARTAO')
+	AADD(_aRegs,'CRDEXTRATO')
+	AADD(_aRegs,'CRDFILA')
+	AADD(_aRegs,'CRDINFOCART')
+	AADD(_aRegs,'CRDLIMCRED')
+	AADD(_aRegs,'CRDLIMITE')
+	AADD(_aRegs,'CRDLOGIN')
+	AADD(_aRegs,'CRDORCAMENTO')
+	AADD(_aRegs,'CRDSTATUS')
+	AADD(_aRegs,'CRDVENDA')
+	AADD(_aRegs,'CRMCUSTOMERCONTACT')
+	AADD(_aRegs,'CRMPROSPECT')
+	AADD(_aRegs,'CRMSELLERCUSTOMERCONTACT')
+	AADD(_aRegs,'CRMSUSPECT')
+	AADD(_aRegs,'CTBACCOUNTINGENTRY')
+	AADD(_aRegs,'CTBACCOUNTINGITEM')
+	AADD(_aRegs,'CTBBALANCEFUNCTIONS')
+	AADD(_aRegs,'CTBCOSTCENTER')
+	AADD(_aRegs,'CTBGENERALLEADER')
+	AADD(_aRegs,'CTBVALUECATEGORY')
+	AADD(_aRegs,'DELCRD')
+	AADD(_aRegs,'DELCRDX')
+	AADD(_aRegs,'DELNCC')
+	AADD(_aRegs,'EAISERVICE')
+	AADD(_aRegs,'EQUIFAX')
+	AADD(_aRegs,'FINANCECUSTOMERBILL')
+	AADD(_aRegs,'FINANCECUSTOMERREGFORM')
+	AADD(_aRegs,'FINANCEREGFORM')
+	AADD(_aRegs,'FINANCESELLERBILL')
+	AADD(_aRegs,'FINANCESELLERCUSTOMERREGFORM')
+	AADD(_aRegs,'FINANCESUPPLIERBILL')
+	AADD(_aRegs,'FINANCESUPPLIERREGFORM')
+	AADD(_aRegs,'FRTBAIXACRD')
+	AADD(_aRegs,'FRTCRD')
+	AADD(_aRegs,'FRTCRDBX')
+	AADD(_aRegs,'FRTCRDPSVPG')
+	AADD(_aRegs,'FRTNCC')
+	AADD(_aRegs,'FRTPAFECF')
+	AADD(_aRegs,'FRTVALEPRE')
+	AADD(_aRegs,'FSCALENDAR')
+	AADD(_aRegs,'FSCUSTOMERSERVICEBUDGET')
+	AADD(_aRegs,'FSCUSTOMERSERVICECALL')
+	AADD(_aRegs,'FSFAILURE')
+	AADD(_aRegs,'FSINSTALLBASE')
+	AADD(_aRegs,'FSINSTALLBASEPENDINGS')
+	AADD(_aRegs,'FSREPAIRCENTER')
+	AADD(_aRegs,'FSSERVICE')
+	AADD(_aRegs,'FSSERVICEBUDGET')
+	AADD(_aRegs,'FSSERVICECALL')
+	AADD(_aRegs,'FSSERVICEORDER')
+	AADD(_aRegs,'FTCUSTOMERSALESSUMMARY')
+	AADD(_aRegs,'FTCUSTOMERTASK')
+	AADD(_aRegs,'FTSELLERANNOTATIONS')
+	AADD(_aRegs,'FTSELLERCALENDAR')
+	AADD(_aRegs,'FTSELLEREVENT')
+	AADD(_aRegs,'FTSELLERSALESSUMMARY')
+	AADD(_aRegs,'FTSELLERTASK')
+	AADD(_aRegs,'FWDICTIONARY')
+	AADD(_aRegs,'FWHOSTCOMMUNICATION')
+	AADD(_aRegs,'FWPORTALWEBSERVICE')
+	AADD(_aRegs,'FWWSEAI')
+	AADD(_aRegs,'FWWSECM')
+	AADD(_aRegs,'FWWSLOOKUP')
+	AADD(_aRegs,'FWWSMODEL')
+	AADD(_aRegs,'FWWSPROTHEUSWIDGET')
+	AADD(_aRegs,'GPRGROUP')
+	AADD(_aRegs,'GPRQUESTION')
+	AADD(_aRegs,'GPRQUESTIONARY')
+	AADD(_aRegs,'GPRRESEARCH')
+	AADD(_aRegs,'GPRSUBGROUP')
+	AADD(_aRegs,'INDEXSEARCH')
+	AADD(_aRegs,'INDEXSERVER')
+	AADD(_aRegs,'INTEGRACAOJURIDICA')
+	AADD(_aRegs,'INTEGRATION_PROTHEUS_SIAC')
+	AADD(_aRegs,'INTRFID')
+	AADD(_aRegs,'IREPORT')
+	AADD(_aRegs,'JURWCASO')
+	AADD(_aRegs,'JURWCLI')
+	AADD(_aRegs,'JURWSKURIER')
+	AADD(_aRegs,'JURWSPROCESSOS')
+	AADD(_aRegs,'JURWTAB')
+	AADD(_aRegs,'JURWTPATIV')
+	AADD(_aRegs,'LJCARFID')
+	AADD(_aRegs,'LJESTORC')
+	AADD(_aRegs,'LJFINACB')
+	AADD(_aRegs,'LJFINACEL')
+	AADD(_aRegs,'LJGRVDADOS')
+	AADD(_aRegs,'LJRECEB')
+	AADD(_aRegs,'LJWESTOQUE')
+	AADD(_aRegs,'LJWINTEGRACAO')
+	AADD(_aRegs,'LOJESTOQUE')
+	AADD(_aRegs,'LOJGERDADDR')
+	AADD(_aRegs,'MATA207')
+	AADD(_aRegs,'MENU')
+	AADD(_aRegs,'MSECOSYSTEM')
+	AADD(_aRegs,'MSFASTSTARTIMPORT')
+	AADD(_aRegs,'MSFASTSTARTMODEL')
+	AADD(_aRegs,'MTBANK')
+	AADD(_aRegs,'MTCARRIER')
+	AADD(_aRegs,'MTCURRENCY')
+	AADD(_aRegs,'MTCUSTOMER')
+	AADD(_aRegs,'MTCUSTOMERBUDGET')
+	AADD(_aRegs,'MTCUSTOMERINVOICE')
+	AADD(_aRegs,'MTCUSTOMERPRODUCT')
+	AADD(_aRegs,'MTCUSTOMERPRODUCTIONORDER')
+	AADD(_aRegs,'MTCUSTOMERREMISSION')
+	AADD(_aRegs,'MTCUSTOMERSALESORDER')
+	AADD(_aRegs,'MTCUSTOMERSELLER')
+	AADD(_aRegs,'MTDELIVERYAUTHORIZATIONPARTNERSHIPCONTRA')
+	AADD(_aRegs,'MTFORESEENORDERSOFPRODUCTION')
+	AADD(_aRegs,'MTGROUPOFPRODUCT')
+	AADD(_aRegs,'MTINTEGRATIONAPS')
+	AADD(_aRegs,'MTINTERNALMOVIMENT')
+	AADD(_aRegs,'MTINVOICE')
+	AADD(_aRegs,'MTMACHINELOAD')
+	AADD(_aRegs,'MTPAYMENTPLAN')
+	AADD(_aRegs,'MTPRODUCT')
+	AADD(_aRegs,'MTPRODUCTIONORDER')
+	AADD(_aRegs,'MTPROJECT')
+	AADD(_aRegs,'MTPROJECTANNOTATIONRESOURCES')
+	AADD(_aRegs,'MTPROJECTCONFIRMATION')
+	AADD(_aRegs,'MTPURCHASER')
+	AADD(_aRegs,'MTPURCHASESREQUEST')
+	AADD(_aRegs,'MTQUALITYCONTROL')
+	AADD(_aRegs,'MTSALESFORECAST')
+	AADD(_aRegs,'MTSELLER')
+	AADD(_aRegs,'MTSELLERBUDGET')
+	AADD(_aRegs,'MTSELLERCUSTOMER')
+	AADD(_aRegs,'MTSELLERINVOICE')
+	AADD(_aRegs,'MTSELLEROPPORTUNITY')
+	AADD(_aRegs,'MTSELLERSALESORDER')
+	AADD(_aRegs,'MTSIMULATIONBUDGET')
+	AADD(_aRegs,'MTSIMULATIONQUOTE')
+	AADD(_aRegs,'MTSIMULATIONSALESORDER')
+	AADD(_aRegs,'MTSIMULATIONSUPPLIERINVOICE')
+	AADD(_aRegs,'MTSUPPLIER')
+	AADD(_aRegs,'MTSUPPLIERINVOICE')
+	AADD(_aRegs,'MTSUPPLIERPURCHASEORDER')
+	AADD(_aRegs,'MTSUPPLIERQUOTE')
+	AADD(_aRegs,'MTSUPPLIERREMISSION')
+	AADD(_aRegs,'MTSYSTEMCUSTOMER')
+	AADD(_aRegs,'MTTAXES')
+	AADD(_aRegs,'MTWEBB')
+	AADD(_aRegs,'NFECFGLOC')
+	AADD(_aRegs,'NFEEBRA')
+	AADD(_aRegs,'NFESBRA')
+	AADD(_aRegs,'NFESLOC')
+	AADD(_aRegs,'ORGSTRUCTURE')
+	AADD(_aRegs,'PARTNERECOSYSTEM')
+	AADD(_aRegs,'PAYMENTORDERS')
+	AADD(_aRegs,'PLCADWEB')
+	AADD(_aRegs,'PLRECGLO')
+	AADD(_aRegs,'PLSCMPFP')
+	AADD(_aRegs,'PLSGUIAS')
+	AADD(_aRegs,'PLSMCTMD')
+	AADD(_aRegs,'PLSPROT')
+	AADD(_aRegs,'PLSRELT')
+	AADD(_aRegs,'PLSXF3')
+	AADD(_aRegs,'PLSXFUN')
+	AADD(_aRegs,'PLSXINC')
+	AADD(_aRegs,'PLSXMOV')
+	AADD(_aRegs,'PMSANNOTATIONS')
+	AADD(_aRegs,'PMSCONFIRMATIONS')
+	AADD(_aRegs,'PMSGANTT')
+	AADD(_aRegs,'PMSINFOUSER')
+	AADD(_aRegs,'PMSPROJECTS')
+	AADD(_aRegs,'PMSREPORT')
+	AADD(_aRegs,'QDODOCUMENTS')
+	AADD(_aRegs,'RECEIPTS')
+	AADD(_aRegs,'RESERVEGET')
+	AADD(_aRegs,'RHABILITIES')
+	AADD(_aRegs,'RHABSENCES')
+	AADD(_aRegs,'RHACADEMICGRANT')
+	AADD(_aRegs,'RHANNUALRECEIPTS')
+	AADD(_aRegs,'RHANOTATIONS')
+	AADD(_aRegs,'RHAPDCONSOLIDATED')
+	AADD(_aRegs,'RHARTIFACT')
+	AADD(_aRegs,'RHATTENDCONTROL')
+	AADD(_aRegs,'RHCOMPETENCE')
+	AADD(_aRegs,'RHCURRICULUM')
+	AADD(_aRegs,'RHDEPENDENTS')
+	AADD(_aRegs,'RHEMPLOYEDCURRICULUM')
+	AADD(_aRegs,'RHEMPLOYEEREGISTRATION')
+	AADD(_aRegs,'RHEMPLOYEETRANSF')
+	AADD(_aRegs,'RHEVALUATE')
+	AADD(_aRegs,'RHEVALUATIONFACTORS')
+	AADD(_aRegs,'RHEXTRACT')
+	AADD(_aRegs,'RHFACTORS')
+	AADD(_aRegs,'RHHOURSBANK')
+	AADD(_aRegs,'RHIDENTIFY')
+	AADD(_aRegs,'RHKNOWLEDGE')
+	AADD(_aRegs,'RHMENU')
+	AADD(_aRegs,'RHMONITORING')
+	AADD(_aRegs,'RHPAYMENTRECEIPTS')
+	AADD(_aRegs,'RHPERFORMANCEEVALUATE')
+	AADD(_aRegs,'RHPERSONALDESENVPLAN')
+	AADD(_aRegs,'RHPOST')
+	AADD(_aRegs,'RHPROJECTEVALUATE')
+	AADD(_aRegs,'RHREQUEST')
+	AADD(_aRegs,'RHSCHEDULECHART')
+	AADD(_aRegs,'RHTRAININGEVALUATION')
+	AADD(_aRegs,'RHTRAININGRESERVATIONS')
+	AADD(_aRegs,'RHTRAININGS')
+	AADD(_aRegs,'RHTRAININGTEST')
+	AADD(_aRegs,'RHVACANCY')
+	AADD(_aRegs,'RHVACATION')
+	AADD(_aRegs,'RHVACATIONNOTICE')
+	AADD(_aRegs,'RHVACATIONRECEIPTS')
+	AADD(_aRegs,'RHVDFBALANCEVACATION')
+	AADD(_aRegs,'RHVDFCERTIFICATE')
+	AADD(_aRegs,'RHVDFDAILY')
+	AADD(_aRegs,'RHVDFDAYSOFF')
+	AADD(_aRegs,'RHVDFJOURNEY')
+	AADD(_aRegs,'RHVDFLICENCE')
+	AADD(_aRegs,'RHVDFVACATION')
+	AADD(_aRegs,'SERASA')
+	AADD(_aRegs,'SERVERCFG')
+	AADD(_aRegs,'SIGABSC')
+	AADD(_aRegs,'SIGADW')
+	AADD(_aRegs,'SIGAGAC')
+	AADD(_aRegs,'SIGASGI')
+	AADD(_aRegs,'SMARTCTIWSEVENTING')
+	AADD(_aRegs,'SPEDADM')
+	AADD(_aRegs,'SPEDCFGNFE')
+	AADD(_aRegs,'SPEDCTBDEMONSTRACOESCONTABEIS')
+	AADD(_aRegs,'SPEDCTBENTIDADES')
+	AADD(_aRegs,'SPEDCTBMOVIMENTOS')
+	AADD(_aRegs,'SPEDFILEFISCAL')
+	AADD(_aRegs,'SPEDFISCALAPURACAO')
+	AADD(_aRegs,'SPEDFISCALENTIDADES')
+	AADD(_aRegs,'SPEDFISCALMOVIMENTOS')
+	AADD(_aRegs,'SPEDFISCALOUTRASINF')
+	AADD(_aRegs,'SPEDLAYOUTTAX')
+	AADD(_aRegs,'TAFWS')
+	AADD(_aRegs,'TAFWSIMPORT')
+	AADD(_aRegs,'TESSERVICES')
+	AADD(_aRegs,'TMSCFGUSER')
+	AADD(_aRegs,'TMSEVENTS')
+	AADD(_aRegs,'TMSFREIGHTQUOTATION')
+	AADD(_aRegs,'TMSPICKUPORDER')
+	AADD(_aRegs,'TMSTRACKING')
+	AADD(_aRegs,'TSSMONITOR')
+	AADD(_aRegs,'TWSSERVICE')
+	AADD(_aRegs,'USERPORTAL')
+	AADD(_aRegs,'USERPRESENTATION')
+	AADD(_aRegs,'U_WSCEPINFO')
+	AADD(_aRegs,'WEBRASKAGEOPROCESSING')
+	AADD(_aRegs,'WSASSUNTOS')
+	AADD(_aRegs,'WSBCSVIEW')
+	AADD(_aRegs,'WSCASHAUDIT')
+	AADD(_aRegs,'WSCASHMOVEMENT')
+	AADD(_aRegs,'WSCONSUMER')
+	AADD(_aRegs,'WSCUSTOMER')
+	AADD(_aRegs,'WSDESPCHG')
+	AADD(_aRegs,'WSDESPFAT')
+	AADD(_aRegs,'WSFATDELBCS')
+	AADD(_aRegs,'WSFATURABCS')
+	AADD(_aRegs,'WSFINA040')
+	AADD(_aRegs,'WSFINA050')
+	AADD(_aRegs,'WSFINA850')
+	AADD(_aRegs,'WSFLUIGJURIDICO')
+	AADD(_aRegs,'WSFRT272B')
+	AADD(_aRegs,'WSGFE')
+	AADD(_aRegs,'WSGGPE')
+	AADD(_aRegs,'WSGRUPOCLI')
+	AADD(_aRegs,'WSINCLUNCC')
+	AADD(_aRegs,'WSINFORMATIONZ')
+	AADD(_aRegs,'WSINTEGRARMS')
+	AADD(_aRegs,'WSINTRMMNT')
+	AADD(_aRegs,'WSINTRMSOLUM')
+	AADD(_aRegs,'WSLOJA845')
+	AADD(_aRegs,'WSMAT110')
+	AADD(_aRegs,'WSMATA105')
+	AADD(_aRegs,'WSMATA120')
+	AADD(_aRegs,'WSMATA410')
+	AADD(_aRegs,'WSNATUREZA')
+	AADD(_aRegs,'WSPCP')
+	AADD(_aRegs,'WSPEDIDOPORTAL')
+	AADD(_aRegs,'WSPROMO')
+	AADD(_aRegs,'WSPTALNOM')
+	AADD(_aRegs,'WSRETCOT')
+	AADD(_aRegs,'WSSALES')
+	AADD(_aRegs,'WSSTOCK')
+	AADD(_aRegs,'WSTENDER')
+	AADD(_aRegs,'WSTESPROPOSAL')
+	AADD(_aRegs,'WSTIMEKEEP')
+	AADD(_aRegs,'WSTITULOSBCS')
+	AADD(_aRegs,'WSTPDESPESA')
+	AADD(_aRegs,'WSVLDUSR')
+
+	_cQuery9 := " SELECT DISTINCT A2_CGC, A2_NOME, A2_EMAIL, A2_COD, A2_LOJA
+	_cQuery9 += " FROM "+RetSqlName("SA2")+" A2
+	_cQuery9 += " WHERE A2.D_E_L_E_T_=' ' 
+
+	If !_lJob
+
+		If !Empty(_cLoja)
+			_cQuery9 += " AND A2_COD='"+_cCod+"' AND A2_LOJA='"+_cLoja+"'
+		EndIf
+
+	Else
+
+		_cQuery9 += " AND A2_COD||A2_LOJA IN (
+		_cQuery9 += " SELECT DISTINCT C8_FORNECE||C8_LOJA
+		_cQuery9 += " FROM "+RetSqlName("SC8")+" C8
+		_cQuery9 += " WHERE C8.D_E_L_E_T_=' ' AND C8_EMISSAO BETWEEN '"+DTOS(YearSub(Date(),1))+"' AND '"+DTOS(Date())+"'
+		_cQuery9 += " )
+
+	EndIf
+
+	If !Empty(Select(_cAlias9))
+		DbSelectArea(_cAlias9)
+		(_cAlias9)->(dbCloseArea())
+	Endif
+
+	dbUseArea(.T.,"TOPCONN",TcGenQry(,,_cQuery9),_cAlias9,.T.,.T.)
+
+	dbSelectArea(_cAlias9)
+	(_cAlias9)->(dbGoTop())
+
+	While (_cAlias9)->(!Eof())
+
+		If !Empty((_cAlias9)->A2_CGC)
+
+			DbSelectArea("AI3")
+			AI3->(DbSetOrder(2))
+			AI3->(DbGoTop())
+			If !AI3->(DbSeek(xFilial("AI3")+(_cAlias9)->A2_CGC))
+
+				_cNum := GetSx8Num("AI3","AI3_CODUSU")
+
+				AI3->(RecLock("AI3",.T.))
+				AI3->AI3_CODUSU := _cNum
+				AI3->AI3_LOGIN	:= (_cAlias9)->A2_CGC
+				AI3->AI3_PSW	:= (_cAlias9)->(A2_COD+A2_LOJA)
+				AI3->AI3_NOME	:= (_cAlias9)->A2_NOME
+				AI3->AI3_ADMIN	:= "2"
+				AI3->AI3_EMAIL  := (_cAlias9)->A2_EMAIL
+				AI3->(MsUnLock())
+
+				AI3->(ConfirmSx8())
+
+			EndIf
+
+			DbSelectArea("AI5")
+			AI5->(DbSetOrder(1))
+			AI5->(DbGoTop())
+			If !AI5->(DbSeek(xFilial("AI5")+AI3->AI3_CODUSU))
+				AI5->(RecLock("AI5",.T.))
+				AI5->AI5_CODUSU := AI3->AI3_CODUSU
+				AI5->AI5_CODFOR	:= (_cAlias9)->A2_COD
+				AI5->AI5_LOJFOR := (_cAlias9)->A2_LOJA
+				AI5->(MsUnLock())
+			EndIf
+
+			DbSelectArea("AI6")
+			AI6->(DbSetOrder(3))
+
+			For _nX:=1 To Len(_aRegs)
+
+				AI6->(DbGoTop())
+				If !(DbSeek(xFilial("AI6")+AI3->AI3_CODUSU+_aRegs[_nX]))
+					AI6->(RecLock("AI6",.T.))
+					AI6->AI6_CODUSU := AI3->AI3_CODUSU
+					AI6->AI6_WEBSRV := _aRegs[_nX]
+					AI6->(MsUnLock())
+				EndIf
+
+			Next
+
+		EndIf
+
+		(_cAlias9)->(DbSkip())
+	EndDo
+
+//giovani zago 02/12/2019 fechando a query
+	If !Empty(Select(_cAlias9))
+		DbSelectArea(_cAlias9)
+		(_cAlias9)->(dbCloseArea())
+	Endif
+
+
+
+Return

@@ -1,0 +1,205 @@
+#Include "PROTHEUS.Ch"
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³ STFSPC20 ³ Autor ³ TOTVS                 ³ Data ³ 10.03.10 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Relatorio Matriz de Documento de Produtos                  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Sintaxe   ³ STFSRPCP02(void)                                           ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ STECK                                                      ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/                                                                          
+User Function STFSPC20()
+Local Wnrel
+LOCAL cString:="SG2"
+LOCAL cDesc1:= OemToAnsi("Este programa ira imprimir a Matriz de Documento de Produtos  ")
+LOCAL cDesc2:= ""
+LOCAL cDesc3:= ""
+LOCAL tamanho:="G"
+LOCAL CbCont
+PRIVATE aReturn := { "Zebrado", 1,"Administracao", 1, 2, 1, "",1 }
+PRIVATE nomeprog:="STFSPC20"     
+PRIVATE cPerg   :="STFSPC20"
+PRIVATE nTipo
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Verifica as perguntas selecionadas                           ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+pergunte(cPerg,.F.)
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis utilizadas para parametros                         ³
+//³ mv_par01  	      	// Do  Produto                           ³
+//³ mv_par02            // Ate Produto                           ³
+//³ mv_par03            // Do  Grupo                             ³
+//³ mv_par04            // Ate Grupo                             ³
+//³ mv_par05            // Status: Pendente/Normal/Ambos         ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+PRIVATE titulo		:="Matriz de Documentacao de Produtos"
+                     // 01234^678901234^678901234^678901234^678901234^678901234^678901234^678901234^678901234^678901234^678901234^678901234^678901234^678901234^678901234^678901234^678901234^678901234^678901234^678901234^678901234^678901234^678901234^67890
+                     //           1         2         3         4         5         6         7         8         9        10        12        13        14        15        16
+PRIVATE cabec1		:= "Produto               Descricao                        Grupo    Desenho          Estrutura  Rota  Operacao         C.C.       Pl Inspecao                     F.Prep.Maq   Instr. Trab   Ferramenta"
+PRIVATE cabec2		:= ""
+
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Envia controle para a funcao SETPRINT                        ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+wnrel:="STFSPC20"   //Nome Default do relatorio em Disco
+wnrel := SetPrint(cString,wnrel,cPerg,@titulo,cDesc1,cDesc2,cDesc3,.F.,"",,tamanho,"",.F.)
+
+If nLastKey == 27
+	Set Filter To
+	Return
+Endif
+
+SetDefault(aReturn,cString)
+
+If nLastKey == 27
+	Set Filter To
+	Return
+Endif
+
+nTipo := Iif(aReturn[4] == 1, 15, 18)
+
+RptStatus({|lEnd| STRPCP02Imp(@lEnd,wnRel,cString,Tamanho,CbCont)},Titulo)
+Return
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³ Fun‡…o    ³STRPCP02Imp³ Autor ³ Totvs                 ³ Data ³ 10.03.10 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Descri‡…o ³ Impressao Di rio Geral Por Centro De Custo Extra            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Sintaxe   ³STRPCP02Imp(lEnd,wnRel,cString)                              ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso       ³ Especifico                                                  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros ³ lEnd    - A‡Æo do Codeblock                                 ³±±
+±±³           ³ wnRel   - T¡tulo do relat¢rio                               ³±±
+±±³           ³ cString - Mensagem                                          ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Static Function STRPCP02Imp(lEnd,WnRel,cString,Tamanho,CbCont)
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Define Variaveis                                             ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+Local cQuery		:= ""
+Local cAliasTmp	:= GetNextAlias()
+Local cRevisao		:= ""
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis utilizadas para Impressao do Cabecalho e Rodape    ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+cbtxt    := SPACE(10)
+li       := 80
+m_pag		:= 01
+
+cQuery 	:= "SELECT SB1.B1_COD PRODUTO, SB1.B1_DESC DESCRICAO,SB1.B1_GRUPO GRUPO,isnull(SB5.B5_DES,' ') DESENHO, isnull(SG1.G1_COD,' ') ESTRU, ISNULL(SG2.G2_CODIGO,' ') OPERACAO, SB1.B1_CC CC,ISNULL(SG2.G2_SETUP,0) SETUP, ISNULL(SG2.G2_FERRAM, ' ') FERRAMENTA, ISNULL(QP6.QP6_PRODUT,' ') INSPECAO, ISNULL(QP6.QP6_REVI,' ') REVI"
+cQuery 	+= "  FROM "	+ 	RetSqlName( "SG2" ) + " SG2, "
+cQuery 	+= 				+	RetSqlName( "SB1" ) + " SB1 "
+cQuery	+= "  LEFT JOIN " + RetSqlName( "SB5" ) + " SB5 "
+cQuery	+= "    ON SB5.B5_FILIAL ='" + xFilial( "SB5" ) + "'
+cQuery	+= "   AND SB5.B5_COD    = SB1.B1_COD "
+cQuery	+= "   AND SB5.D_E_L_E_T_ = ' ' "
+cQuery	+= "  LEFT JOIN " + RetSqlName( "SG1" ) + " SG1 "
+cQuery	+= "    ON SG1.G1_FILIAL ='" + xFilial( " SG1 " ) + " '
+cQuery	+= "   AND SG1.G1_COD = SB1.B1_COD "
+cQuery	+= "  LEFT JOIN " + RetSqlName( "QP6" ) + " QP6 "
+cQuery	+= "    ON QP6.QP6_FILIAL ='" + xFilial( "QP6" ) + "'
+cQuery	+= "   AND QP6.QP6_PRODUT = SB1.B1_COD "
+cQuery	+= " WHERE SB1.B1_FILIAL ='" + xFilial( "SB1" ) + "'
+cQuery 	+= "   AND SB1.B1_COD >= '" + mv_par01 + "'"
+cQuery 	+= "   AND SB1.B1_COD <= '" + mv_par02 + "'"
+cQuery 	+= "   AND SB1.B1_GRUPO >= '" + mv_par03 + "'"
+cQuery 	+= "   AND SB1.B1_GRUPO <= '" + mv_par04 + "'"
+cQuery	+= "   AND SB1.D_E_L_E_T_= ' '"
+cQuery	+= "   AND SG2.G2_FILIAL ='" + xFilial( "SG2" ) + "'
+cQuery	+= "   AND SG2.G2_PRODUTO = SB1.B1_COD"
+cQuery	+= "   AND SG2.D_E_L_E_T_ = ' '"
+cQuery := ChangeQuery(cQuery)
+dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),cAliasTmp,.F.,.T. )
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Inicia a impressao do relatorio                              ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+(cAliasTmp)->(dbGotop())
+While (cAliasTmp)->(!Eof())
+             
+	If !Empty((cAliasTmp)->INSPECAO)
+		cRevisao:=QA_UltRevEsp((cAliasTmp)->PRODUTO,,.F.,,"QIP")
+	EndIf
+	If lEnd
+		@ PROW()+1,001 PSay OemToAnsi("CANCELADO PELO OPERADOR")
+		Exit
+	EndIf
+	IF li > 58
+		Cabec(titulo,cabec1,cabec2,nomeprog,tamanho,nTipo)
+		li := 8
+	EndIF
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Verifica se tem alguma pendencia no cadastro                 ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If mv_par05 == 2
+		If Empty((cAliasTmp)->ESTRU) .Or. Empty((cAliasTmp)->OPERACAO) .Or. Empty((cAliasTmp)->FERRAMENTA) .Or.;
+			Empty((cAliasTmp)->GRUPO) .Or. Empty((cAliasTmp)->DESENHO)  .Or. Empty((cAliasTmp)->CC) .Or. ;
+			Empty((cAliasTmp)->SETUP) .Or. Empty((cAliasTmp)->INSPECAO) .Or. Empty(cRevisao)
+			(cAliasTmp)->(dbSkip())
+			Loop			
+		EndIf
+	EndIf
+
+	@ li, 00 PSay 	(cAliasTmp)->PRODUTO
+	@ li, 22 PSay 	(cAliasTmp)->DESCRICAO
+	@ li, 55 PSay 	(cAliasTmp)->GRUPO
+	@ li, 64 PSay 	(cAliasTmp)->DESENHO
+	@ li, 81 PSay 	Iif(Empty((cAliasTmp)->ESTRU),"N","S")
+	@ li, 92 PSay 	Iif(Empty((cAliasTmp)->OPERACAO),"N","S")
+	@ li, 98 PSay 	(cAliasTmp)->OPERACAO
+	@ li,115 PSay 	(cAliasTmp)->CC
+	@ li,126 PSay 	AllTrim((cAliasTmp)->INSPECAO)+"/"+cRevisao
+	@ li,158 PSay	Iif((cAliasTmp)->SETUP==0,"N","S")
+	@ li,171 PSay	Iif(Empty((cAliasTmp)->FERRAMENTA),"N","S")
+	@ li,185 PSay	(cAliasTmp)->FERRAMENTA
+
+	If lEnd
+		Exit
+	End	
+	
+	If li > 58
+		Cabec(titulo,cabec1,cabec2,nomeprog,tamanho,nTipo)
+	Endif
+	li++
+	(cAliasTmp)->(dbSkip())
+EndDo                                 
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Impressao do Rodape.                                       ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+If li < 59
+	Roda(cbcont,cbtxt,Tamanho)
+EndIf
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Deleta arquivo de trabalho                                   ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+(cAliasTmp)->(dbCloseArea())
+FErase(cAliasTmp+GetDBExtension())
+FErase(cAliasTmp+OrdBagExt())
+
+If aReturn[5] = 1
+	Set Printer TO
+	Commit
+	ourspool(wnrel)
+Endif
+MS_FLUSH()

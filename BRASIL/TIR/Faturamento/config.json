@@ -1,0 +1,14 @@
+{
+    "Url": "http://10.152.10.8:13002/",
+    "Browser": "Firefox",
+    "Environment": "d03_dist",
+    "Language": "pt-br",
+    "User": "tir",
+    "Password": "steck2023",
+    "Headless": false,
+    "CheckValue": false,
+    "NewLog": true,
+    "MotExec": "FATURAMENTO",
+    "ExecId": "20230721",
+    "LogUrl1": "http://127.0.0.1:3333/log/"
+}

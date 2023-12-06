@@ -1,0 +1,20 @@
+USER FUNCTION MTA416PV
+
+IF SC5->(FIELDPOS("C5_USOCFDI"))
+    IF Empty(SCJ->CJ_USOCFDI)
+        M->C5_USOCFDI := SA1->A1_USOCFDI
+    else
+        M->C5_USOCFDI := SCJ->CJ_USOCFDI
+    Endif
+
+ENDIF
+
+IF SC5->(FIELDPOS("C5_FPAGO"))
+    IF Empty(SCJ->CJ_FPAGO)
+        M->C5_FPAGO := SA1->A1_FPAGO
+    else
+        M->C5_FPAGO := SCJ->CJ_FPAGO
+    Endif
+ENDIF
+
+Return

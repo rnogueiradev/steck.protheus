@@ -1,0 +1,100 @@
+#INCLUDE "TBICONN.CH"
+#INCLUDE "PROTHEUS.CH"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³ IMG01    ³ Autor ³ Fabrica de Software   ³ Data ³ 03/12/08 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Imagem/Layout das etiquetas de identificacao dos produtos  ³±±
+±±³          ³ (layout etiqueta de producao e recebimento)                ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ STECK							  		                          	  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß*/
+User Function IMG01()
+Local nQtde 		:= If(len(paramixb) >= 1,NOROUND(paramixb[ 1],3) ,1)
+Local nCopias		:= If(len(paramixb) >= 4,paramixb[ 4],1)
+Local cOP      	:= If(len(paramixb) >=10,paramixb[10],"")
+Local cLote    	:= If(len(paramixb) >=12,paramixb[12],NIL)
+Local _nFrac	:= paramixb[18]
+Local cColetivo	:= "Não"
+Local cPaisImp		:= "Padrao"
+Local cTamanho		:= "Grande"
+Local cFunName 	:= Upper(FunName())
+Local cEmpresa		:= cEmpAnt //U_RetEmpX()
+Local dEmissao		:= dDataBase
+Local lEtiCartao  := ("STFSRE2" $ cFunName)  // impressão de cartao
+Local lEtiProduto	:= ("STFSPC3" $ cFunName)
+
+cEan14		:= MV_PAR05
+
+If "STFSFA20" $ cFunName // se a impressão vem da rotina de separacao, necessario identificar o tipo cartao ou produto
+	If ! Empty(CB7->CB7_OP)  //Por producao
+		lEtiCartao := .T.
+		lEtiProduto:= .F.
+		cOpcSel := "Ordem de Producao"
+		dEmissao:= dDataBase
+		U_STFSRE25(nCopias,nQtde,cLote,CB7->CB7_OP,dEmissao)
+	Else
+		lEtiCartao := .F.
+		lEtiProduto:= .T.
+		cOpcSel := "Ordem de Separacao"
+ 		If cFunName == "U_STFSPC31" .or. cFunName == "U_STFSPC32"
+			cColetivo	:= MV_PAR02
+			cPaisImp	:= MV_PAR03
+			cTamanho 	:= MV_PAR04
+			cEmpresa	:= cEmpAnt//Left(MV_PAR05,2)
+			cEan14		:= MV_PAR05
+
+		EndIf
+		If Empty(cEmpresa)  // Laercio: Empty(cEmpresa)
+			cEmpresa:= SM0->M0_CODIGO
+		EndIf
+		If cTamanho == "Grande"
+//			ConOut("Coletor - nCopias -> "+AllTrim(Str(nCopias)))
+//			ConOut("Coletor - nQtde -> "+AllTrim(Str(nQtde)))
+//			ConOut("Coletor - cLote -> "+AllTrim(cLote))
+//			ConOut("Coletor - cColetivo -> "+AllTrim(cColetivo))
+//			ConOut("Coletor - cPaisImp -> "+AllTrim(cPaisImp))
+//			ConOut("Coletor - cEmpresa -> "+AllTrim(cEmpresa))
+			U_STFSPC35(nCopias,nQtde,cLote,cColetivo,cPaisImp,cEmpresa,cEan14,_nFrac)
+		Else
+			U_STFSPC36(nCopias,nQtde,cLote,cColetivo,cPaisImp,cEmpresa)
+		EndIf
+	EndIf
+Else
+	If lEtiCartao
+		//cOpcSel  variavel private criada dentro do wizard do padrão com texto da opcao selecionada
+		If 		Left(cOpcSel,15) ==Left("Nota Fiscal",15)
+			dEmissao:= MV_PAR05
+		ElseIf	Left(cOpcSel,15) ==Left("Produto",15)
+			dEmissao:= MV_PAR02
+		ElseIf 	Left(cOpcSel,15) ==Left("Ordem de Producao",15)
+			dEmissao:= MV_PAR02
+		ElseIf 	Left(cOpcSel,15) ==Left("Ordem de Separacao",15)
+			dEmissao:= MV_PAR02
+			cOP	:= CB7->CB7_OP
+		EndIf
+		U_STFSRE25(nCopias,nQtde,cLote,cOP,dEmissao)
+	ElseIf lEtiProduto
+		If cFunName == "U_STFSPC31" .or. cFunName == "U_STFSPC32"
+			cColetivo	:= MV_PAR02
+			cPaisImp		:= MV_PAR03
+			cTamanho 	:= MV_PAR04
+			cEmpresa		:= cEmpAnt//Left(MV_PAR05,2)
+			cEan14		:= MV_PAR05
+		EndIf
+		If Empty(cEmpresa)
+			cEmpresa:= cEmpAnt  //SM0->M0_CODIGO
+		EndIf
+		If cTamanho == "Grande"
+			U_STFSPC35(nCopias,nQtde,cLote,cColetivo,cPaisImp,cEmpresa,cEan14,_nFrac)
+		Else
+			U_STFSPC36(nCopias,nQtde,cLote,cColetivo,cPaisImp,cEmpresa)
+		EndIf
+	EndIf
+Endif
+Return

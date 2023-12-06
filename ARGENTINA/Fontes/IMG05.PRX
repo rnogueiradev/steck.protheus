@@ -1,0 +1,143 @@
+#INCLUDE "Protheus.ch"
+#INCLUDE "SET.CH"
+#INCLUDE "Topconn.ch"
+/*
+Padrao Zebra
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³IMG05Ofi  ºAutor  ³Luiz Enrique        º Data ³  01/10/2009 º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³Ponto de entrada referente a imagem de identificacao do     º±±
+±±º          ³volume Oficial		                                      º±± 
+±±º          ³**** UTILIZA CB7 POSICIONADO ****                           º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ STECK			                                          º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß */
+User Function Img05()
+	Local cVolume	:= Paramixb[1]
+	Local aPgs		:= {}
+	Local aAux		:= {}
+	Local nLimite 	:= 17  // quantide de produto que cabem na etiqueta
+	Local nC			:= 0
+	Local nX			:= 0
+
+	CB6->(DbSetorder(1))
+	CB6->(DbSeek(xFilial('CB6')+cVolume))
+
+	If Empty(CB6->CB6_XPESO)
+		MsgAlert("Volume em aberto, não poderá ser impresso!!!","Atenção")
+		Return
+	EndIf
+
+	CB9->(DbSetOrder(4))
+	CB9->(DbSeek(xFilial("CB9")+cVolume))
+	While CB9->(! Eof() .and. CB9_FILIAL+CB9_VOLUME == xFilial("CB9")+cVolume)
+		aadd(aAux,{CB9->CB9_PROD,Transform(CB9->CB9_QTEEMB,"999999") })
+		nc++
+		If nC > nLimite
+			aadd(aPgs,aClone(aAux))
+			aAux:={}
+			nC:=0
+		EndIf
+		CB9->(DbSkip())
+	End
+
+	If ! Empty(aAux)
+		aadd(aPgs,aClone(aAux))
+	EndIf
+
+	If Empty(aPgs)
+		MsgAlert("Volume vazio!!!","Atenção")
+		Return
+	EndIf
+
+	SA1->(DbSetOrder(1))
+	SA1->(DbSeek(xFilial("SA1")+CB7->(CB7_CLIENT+CB7_LOJA)))
+	SA4->(DbSetOrder(1))
+	SA4->(DbSeek(xFilial("SA4")+CB7->CB7_TRANSP))
+	For nX:= 1 to len(aPgs)
+		ImgVol(cVolume,aPgs[nX])
+	Next
+Return
+
+Static Function ImgVol(cVolume,aItenPg)
+	Local nx
+	Local nLin
+	Local cNReduz	:= AllTrim(SA1->A1_NREDUZ)
+	Local cSeq		:= Right(CB6->CB6_VOLUME,4)
+	Local cPedido	:= CB6->CB6_PEDIDO
+	Local cTipVol	:= CB6->CB6_TIPVOL
+	Local cRegiao	:= SA1->A1_GRPVEN
+	Local cPeso		:= Alltrim(Str(CB6->CB6_XPESO,09,2))
+	Local cNomEmp	:= SM0->M0_NOME
+	Local cCNPJ		:= Transform(SM0->M0_CGC, "@R 99.999.999-9999/99")
+	Local cMunici	:= Alltrim(SA1->A1_MUN)
+	Local cUF		:= SA1->A1_EST
+	Local cOs		:= CB6->CB6_XORDSE
+	Local CPORTA	:= "LPT1"
+
+	If Empty(SM0->M0_CGC)
+		cCNPJ := "99.999.999/9999-99"
+	EndIf
+
+	cRegiao := ""//u_regceped(cPedido) // funcao do giovanni totvs para buscar o codigo da regiao
+
+	MSCBPRINTER("ELTRON",cPorta,,,.F.)  
+	//MSCBPRINTER("ZEBRA",cPorta,,,.F.)  //EMERSON HOLANDA 09/10/23
+
+	MSCBBEGIN(1,6) //124.5 Tamanho da etiqueta
+
+	MSCBINFOETI("Volume","")
+
+	MSCBLineH(00,01,100,2)
+	//MSCBLineH(00,64,100,2)//Emerson Holanda 06/10/23 retirada a linha horizontal conforme solicitado.
+	
+	MSCBLineH(00,15,85,2)
+	//MSCBLineV(85,01,64,2) 
+	MSCBLineV(85,01,58,2) //Emerson Holanda 06/10/23
+
+
+	//MSCBSAY(20,10, Substring(Alltrim(QRY->A1_NOME),1,_nTam),"N","4","3,3")
+
+	MSCBSAY(05,03,cNReduz								   ,"N","4","1,1")
+
+	MSCBSAY(05,07,"Pedido: "+cPedido			  				,"N","2","1,1")
+	MSCBSAY(45,07,"Volume:"+cSeq	+" CX:"+cTipVol				,"N","2","1,1")
+	MSCBSAY(05,11,"Regiao: "+cRegiao  							,"N","2","1,1")
+	MSCBSAY(45,11,"Peso (kg): "+cPeso							,"N","2","1,1")
+
+	//MSCBSAYBAR(05,23,cVolume	,"R",'MB07',10,.F.,.T.,.F.,'C',3,4,.F.,.F.,"1",.T.)
+
+	MSCBSAY(097,003,cPedido										,"R","2","1,1")
+	//If GetMv("ST_IMGTNT",,.F.)//giovani zago 23/03/15 ajuste na etiqueta de volume para a tnt.
+	MSCBSAYBAR(0105,003,SUBSTR(Alltrim(SM0->M0_CGC),1,8) + Alltrim(cVolume)	,"R",'MB07',04,.F.,.T.,.F., ,3,1,.F.,.F.,"1",.F.)
+	//Else
+	//	MSCBSAYBAR(105,018,cOs			 ,"R",'MB07',08,.F.,.F.,.F., ,1,2,.F.,.F.,"1",.F.)
+	//EndIf
+	MSCBSAY(097,028,"OS "+cOs			 ,"R","2","1,1")
+	MSCBSAY(095,003,cNomEmp				 ,"R","2","1,1")
+	MSCBSAY(092,003,"C.U.I: "+cCNPJ		 ,"R","2","1,1")
+	MSCBSAY(088,003,cMunici+" "+cUF		 ,"R","2","1,1")
+	//MSCBSAY(084,17,"Conteudo/Contenido:" ,"R","2","1,1")
+	//MSCBSAY(084,50,"Quant"				 ,"R","2","1,1")
+	//nLin := 80
+	
+	MSCBSAY(079,17,"Conteudo/Contenido:" ,"R","2","1,1")
+	MSCBSAY(079,50,"Quant"				 ,"R","2","1,1")
+	nLin := 75
+	
+	For nx:= 1 to len(aItenPg)
+		//MSCBSAY(nLin,17,aItenPg[nX,1]		,"R", "F", "20,10",,,,,.T.)
+		MSCBSAY(nLin,17,StrTran(Alltrim(aItenPg[nX,1]),"_","-")		,"R", "2", "1,1",,,,,.T.)
+		MSCBSAY(nLin,44,aItenPg[nX,2]		,"R", "2", "1,1",,,,,.T.)
+		nLin-=3.5
+	Next
+
+	MSCBEND()
+
+	MSCBCLOSEPRINTER()
+
+Return
