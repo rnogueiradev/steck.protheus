@@ -11,20 +11,20 @@
 #Include 'XmlXFun.ch'
 #Include 'Shell.Ch'
 
-WSRESTFUL 4MDGAPI DESCRIPTION "API de Integração 4MDG"
+WSRESTFUL 4MDGAPI DESCRIPTION "API de Integraï¿½ï¿½o 4MDG"
 
 WSMETHOD POST Fornecedores ;
-    DESCRIPTION "Método de Cadastro de Fornecedores" ;
+    DESCRIPTION "Mï¿½todo de Cadastro de Fornecedores" ;
     WSSYNTAX "Fornecedores" ;
     PATH "Fornecedores" PRODUCES APPLICATION_JSON
 
 WSMETHOD POST Produtos ;
-    DESCRIPTION "Método de Cadastro de Produtos" ;
+    DESCRIPTION "Mï¿½todo de Cadastro de Produtos" ;
     WSSYNTAX "Produtos" ;
     PATH "Produtos" PRODUCES APPLICATION_JSON
 
 WSMETHOD POST Clientes ;
-    DESCRIPTION "Método de Cadastro de Clients" ;
+    DESCRIPTION "Mï¿½todo de Cadastro de Clients" ;
     WSSYNTAX "Clientes" ;
     PATH "Clientes" PRODUCES APPLICATION_JSON
 
@@ -33,7 +33,7 @@ END WSRESTFUL
 WSMETHOD POST Fornecedores WSSERVICE 4MDGAPI
 
 Local lRet          := .T.
-Local nStatusCode   := 200
+Local nStatusCode   := 200 //teste
 Local cMessage      := ""
 Local oJForn        := JSonObject():New()
 Local cBody         := ""
@@ -89,7 +89,7 @@ If Len(Self:aURLParms) > 0
         aNomeFor  := oJForn:GetNames()
         
         If AllTrim( Upper( ValType( oJForn ) ) ) == "O" .Or. AllTrim( Upper( ValType( oJForn ) ) ) == "J"
-            // Valida se Layout existe e está preenchido...
+            // Valida se Layout existe e estï¿½ preenchido...
             dbSelectArea("Z9A")
             dbSetOrder(1)
             Z9A->( dbGoTop() )
@@ -165,7 +165,7 @@ If Len(Self:aURLParms) > 0
                     ConOut( Replicate( "-", 60 ) )
                     ConOut( "Data " + DTOC( dDataBase ) + " Time " + Time() )
 
-                    // Busca chave pelo Índice Primário do Layout... (CNPJ)
+                    // Busca chave pelo ï¿½ndice Primï¿½rio do Layout... (CNPJ)
                     dbSelectArea("SA2")
                     dbSetOrder( Z9B->Z9B_INDICE )
                     If aScan( aNomeFor, {|x| Alltrim( x ) == AllTrim( Z9B->Z9B_CHVIN1 ) } ) > 0
@@ -179,11 +179,11 @@ If Len(Self:aURLParms) > 0
                             ALTERA    := .T.
                             cCodigo   := SA2->A2_COD
                             cTipo     := SA2->A2_TIPO
-                            ConOut( "001 - Código..: " + SA2->A2_COD )
+                            ConOut( "001 - Cï¿½digo..: " + SA2->A2_COD )
                             ConOut( "001 - Loja....: " + SA2->A2_LOJA )
                             ConOut( "001 - cCodigo.......: " + cCodigo )
                         Else
-                            ConOut("CNPJ não encontrado " + oJForn:GetJsonText( AllTrim( Z9B->Z9B_CHVIN1 ) ))
+                            ConOut("CNPJ nï¿½o encontrado " + oJForn:GetJsonText( AllTrim( Z9B->Z9B_CHVIN1 ) ))
                             nOperacao := 3
                             INCLUI    := .T.
                             ALTERA    := .F.
@@ -192,7 +192,7 @@ If Len(Self:aURLParms) > 0
                         EndIf
                     EndIf
 
-                    // Busca chave pelo Índice Alternativo do Layout... (CPF)
+                    // Busca chave pelo ï¿½ndice Alternativo do Layout... (CPF)
                     If aScan( aNomeFor, {|x| Alltrim( x ) == AllTrim( Z9B->Z9B_ALTIN1 ) } ) > 0 .And. Empty( cChave )
                         If !Empty( oJForn:GetJsonText( AllTrim( Z9B->Z9B_ALTIN1 ) ) )
                             ConOut( "Chave CPF: " + oJForn:GetJsonText( AllTrim( Z9B->Z9B_ALTIN1 ) ) )
@@ -205,11 +205,11 @@ If Len(Self:aURLParms) > 0
                                 ALTERA    := .T.
                                 cCodigo   := SA2->A2_COD
                                 cTipo     := SA2->A2_TIPO
-                                ConOut( "002 - Código..: " + SA2->A2_COD )
+                                ConOut( "002 - Cï¿½digo..: " + SA2->A2_COD )
                                 ConOut( "002 - Loja....: " + SA2->A2_LOJA )
                                 ConOut( "002 - cCodigo.......: " + cCodigo )
                             Else
-                                ConOut("CPF não encontrado " + oJForn:GetJsonText( AllTrim( Z9B->Z9B_ALTIN1 ) ))
+                                ConOut("CPF nï¿½o encontrado " + oJForn:GetJsonText( AllTrim( Z9B->Z9B_ALTIN1 ) ))
                                 nOperacao := 3
                                 INCLUI    := .T.
                                 ALTERA    := .F.
@@ -226,7 +226,7 @@ If Len(Self:aURLParms) > 0
                     ConOut( "003 - cCodigo.......: " + cCodigo )
                     ConOut( "003 - nOperacao.....: " + Str(nOperacao) )
 
-                    //Pegando o modelo de dados, setando a operação de inclusão
+                    //Pegando o modelo de dados, setando a operaï¿½ï¿½o de inclusï¿½o
                     oModel := FWLoadModel("MATA020M")
                     oModel:SetOperation(nOperacao)
                     oModel:Activate()
@@ -269,7 +269,7 @@ If Len(Self:aURLParms) > 0
                             ConOut(Z9C->Z9C_CAMPO)
                             ConOut(Z9C->Z9C_CPO4MD)
                             If AllTrim( Z9C->Z9C_CPO4MD ) <> "FIXO"
-                                // Se membro não existir, pular o registro...
+                                // Se membro nï¿½o existir, pular o registro...
                                 If aScan( aNomeFor, {|x| Alltrim( x ) == AllTrim( Z9C->Z9C_CPO4MD ) } ) > 0
                                     dbSelectArea("SX3")
                                     dbSetOrder(2)
@@ -279,7 +279,7 @@ If Len(Self:aURLParms) > 0
                                                 cConteudo := fTratar( oJForn:GetJsonText( AllTrim( Z9C->Z9C_CPO4MD ) ), AllTrim( Z9C->Z9C_TRATAM ))
                                                 oSA2Mod:setValue( Z9C->Z9C_CAMPO, Padr( cConteudo, SX3->X3_TAMANHO) )
                                             Else
-                                                // Se caractere, truncar pois dá erro se conteúdo for maior que X3_TAMANHO...
+                                                // Se caractere, truncar pois dï¿½ erro se conteï¿½do for maior que X3_TAMANHO...
                                                 If Empty( Z9C->Z9C_CPOCOM )
                                                     oSA2Mod:setValue( Z9C->Z9C_CAMPO, Padr( oJForn:GetJsonText( AllTrim( Z9C->Z9C_CPO4MD ) ), SX3->X3_TAMANHO) )
                                                 Else
@@ -306,7 +306,7 @@ If Len(Self:aURLParms) > 0
                                     EndIf
                                     ConOut(oJForn:GetJsonText( AllTrim( Z9C->Z9C_CPO4MD ) ))
                                 Else
-                                    ConOut("Membro da Tag não existe")
+                                    ConOut("Membro da Tag nï¿½o existe")
                                 EndIf
                             Else
                                 If !Empty( Z9C->Z9C_TRATAM )
@@ -321,7 +321,7 @@ If Len(Self:aURLParms) > 0
                             EndIf
                         EndIf
 
-                        //Tratar código do município...
+                        //Tratar cï¿½digo do municï¿½pio...
                         If AllTrim( Z9C->Z9C_CAMPO ) == "A2_MUN"
                             cMun := oJForn:GetJsonText( AllTrim( Z9C->Z9C_CPO4MD ) )
                         ElseIf AllTrim( Z9C->Z9C_CAMPO ) == "A2_EST"
@@ -337,7 +337,7 @@ If Len(Self:aURLParms) > 0
                     ConOut( "005 - cMun..........: " + cMun )
                     ConOut( "005 - cEst..........: " + cEst )
 
-                    // Inclui campo Código do Município se encontrar...
+                    // Inclui campo Cï¿½digo do Municï¿½pio se encontrar...
                     If !Empty( cMun ) .And. !Empty( cEst )
                         cQuery := "SELECT CC2_CODMUN FROM " + RetSqlName("CC2") + " WHERE CC2_FILIAL = '" + xFilial("CC2") + "' AND CC2_EST = '" + cEst + "' AND CC2_MUN LIKE '%" + cMun + "%' AND D_E_L_E_T_ = ' '"
                         TCQuery cQuery New Alias "TMPCC2"
@@ -352,14 +352,14 @@ If Len(Self:aURLParms) > 0
                     If nOperacao == 4
                         //oSA2Mod:setValue( "A2_COD", SA2->A2_COD )
                         //oSA2Mod:setValue( "A2_LOJA", SA2->A2_LOJA )
-                        ConOut( "003 - Código..: " + SA2->A2_COD )
+                        ConOut( "003 - Cï¿½digo..: " + SA2->A2_COD )
                         ConOut( "003 - Loja....: " + SA2->A2_LOJA )
                         ConOut( "006 - cCodigo.......: " + cCodigo )
                         ConOut( "006 - nOperacao.....: " + Str(nOperacao) )
                         ConOut( "006 - cChave........: " + cChave )
                     EndIf
 
-                    //Se conseguir validar as informações
+                    //Se conseguir validar as informaï¿½ï¿½es
                     If oModel:VldData()
                         //Tenta realizar o Commit
                         If oModel:CommitData()
@@ -372,18 +372,18 @@ If Len(Self:aURLParms) > 0
 //                                aAdd( aMensagem, {"Integracao Sucesso",IIf(Empty(cCodigo),cA2Cod,cCodigo),IIf(Empty(cCodigo),"Fornecedor incluido com sucesso","Fornecedor alterado com sucesso"),SA2->A2_LOJA})
                             aAdd( aMensagem, {"Integracao Sucesso",IIf(Empty(cCodigo),cA2Cod,cCodigo) + " - " + SA2->A2_LOJA,IIf(Empty(cCodigo),"Fornecedor incluido com sucesso","Fornecedor alterado com sucesso"),SA2->A2_LOJA})
                             ConOut( "DEU CERTO!" )
-                            ConOut( "004 - Código..: " + SA2->A2_COD )
+                            ConOut( "004 - Cï¿½digo..: " + SA2->A2_COD )
                             ConOut( "004 - Loja....: " + SA2->A2_LOJA )
-                        //Se não deu certo, altera a variável para false
+                        //Se nï¿½o deu certo, altera a variï¿½vel para false
                         Else
                             lDeuCerto := .F.
-                            ConOut( "005 - Código..: " + SA2->A2_COD )
+                            ConOut( "005 - Cï¿½digo..: " + SA2->A2_COD )
                             ConOut( "005 - Loja....: " + SA2->A2_LOJA )
                         EndIf
-                    //Se não conseguir validar as informações, altera a variável para false
+                    //Se nï¿½o conseguir validar as informaï¿½ï¿½es, altera a variï¿½vel para false
                     Else
                         lDeuCerto := .F.
-                        ConOut( "006 - Código..: " + SA2->A2_COD )
+                        ConOut( "006 - Cï¿½digo..: " + SA2->A2_COD )
                         ConOut( "006 - Loja....: " + SA2->A2_LOJA )
                     EndIf
 
@@ -391,19 +391,19 @@ If Len(Self:aURLParms) > 0
                     ConOut( "007 - nOperacao.....: " + Str(nOperacao) )
                     ConOut( "007 - cChave........: " + cChave )
 
-                    //Se não deu certo a inclusão, mostra a mensagem de erro
+                    //Se nï¿½o deu certo a inclusï¿½o, mostra a mensagem de erro
                     If ! lDeuCerto
                         //Busca o Erro do Modelo de Dados
                         aErro := oModel:GetErrorMessage()
-                        //Monta o Texto que será mostrado na tela
-                        AutoGrLog("Id do formulário de origem:"  + ' [' + AllToChar(aErro[01]) + ']')
+                        //Monta o Texto que serï¿½ mostrado na tela
+                        AutoGrLog("Id do formulï¿½rio de origem:"  + ' [' + AllToChar(aErro[01]) + ']')
                         AutoGrLog("Id do campo de origem: "      + ' [' + AllToChar(aErro[02]) + ']')
-                        AutoGrLog("Id do formulário de erro: "   + ' [' + AllToChar(aErro[03]) + ']')
+                        AutoGrLog("Id do formulï¿½rio de erro: "   + ' [' + AllToChar(aErro[03]) + ']')
                         AutoGrLog("Id do campo de erro: "        + ' [' + AllToChar(aErro[04]) + ']')
                         AutoGrLog("Id do erro: "                 + ' [' + AllToChar(aErro[05]) + ']')
                         AutoGrLog("Mensagem do erro: "           + ' [' + AllToChar(aErro[06]) + ']')
-                        AutoGrLog("Mensagem da solução: "        + ' [' + AllToChar(aErro[07]) + ']')
-                        AutoGrLog("Valor atribuído: "            + ' [' + AllToChar(aErro[08]) + ']')
+                        AutoGrLog("Mensagem da soluï¿½ï¿½o: "        + ' [' + AllToChar(aErro[07]) + ']')
+                        AutoGrLog("Valor atribuï¿½do: "            + ' [' + AllToChar(aErro[08]) + ']')
                         AutoGrLog("Valor anterior: "             + ' [' + AllToChar(aErro[09]) + ']')
                         ConOut( VarInfo( "", aErro ) )
                         ConOut( nOperacao )
@@ -423,7 +423,7 @@ If Len(Self:aURLParms) > 0
                                             .And. AllTrim( Z9C->Z9C_TRATAM ) <> "GRUPO_EMPRESA"  .And. AllTrim( Z9C->Z9C_TRATAM ) <> "EMPRESA" ;
                                             .And. AllTrim( Z9C->Z9C_TRATAM ) <> "UNIDADE_NEGOCIO"  .And. AllTrim( Z9C->Z9C_TRATAM ) <> "FILIAL"
                                         If AllTrim( Z9C->Z9C_CPO4MD ) <> "FIXO"
-                                            // Se membro não existir, pular o registro...
+                                            // Se membro nï¿½o existir, pular o registro...
                                             If aScan( aNomeFor, {|x| Alltrim( x ) == AllTrim( Z9C->Z9C_CPO4MD ) } ) > 0
                                                 dbSelectArea("SX3")
                                                 dbSetOrder(2)
@@ -472,14 +472,14 @@ If Len(Self:aURLParms) > 0
                             //aAdd( aMensagem, {"Integracao Sucesso",IIf(Empty(cCodigo),cA2Cod,cCodigo),IIf(Empty(cCodigo),"Fornecedor incluido com sucesso","Fornecedor alterado com sucesso"),SA2->A2_LOJA})
                             aAdd( aMensagem, {"Integracao Sucesso",IIf(Empty(cCodigo),cA2Cod,cCodigo) + " - " + SA2->A2_LOJA,IIf(Empty(cCodigo),"Fornecedor incluido com sucesso","Fornecedor alterado com sucesso"),SA2->A2_LOJA})
                             ConOut( "DEU CERTO!" )
-                            ConOut( "004 - Código..: " + SA2->A2_COD )
+                            ConOut( "004 - Cï¿½digo..: " + SA2->A2_COD )
                             ConOut( "004 - Loja....: " + SA2->A2_LOJA )
                         Else
                             //Mostra a mensagem de Erro
                             cCompErro := DTOS( MsDate() ) + Replace( Time(), ":", "")
                             MostraErro("\system\","INTFOR4MDG" + cCompErro + ".txt")
                             cMensErro := MemoRead("\system\INTFOR4MDG" + cCompErro + ".txt")
-                            aAdd( aMensagem, {"Erro gravação",cCodigo,cMensErro,""})
+                            aAdd( aMensagem, {"Erro gravaï¿½ï¿½o",cCodigo,cMensErro,""})
                             nStatusCode := 400
                             ConOut( "DEU ERRO!" )
                         EndIf
@@ -494,14 +494,14 @@ If Len(Self:aURLParms) > 0
                 aAdd( aMensagem, {"Layout Integracao Nao definida","","Efetuar cadastro de layout do metodo fornecedor",""})
                 lRet 		:= .F.
                 nStatusCode	:= 400
-                cMessage    := "Dados inválidos!"
+                cMessage    := "Dados invï¿½lidos!"
             EndIf
 		EndIf
     Else
-        aAdd( aMensagem, {"Não há dados","","Body vazia",""})
+        aAdd( aMensagem, {"Nï¿½o hï¿½ dados","","Body vazia",""})
 		lRet 		:= .F.
 		nStatusCode	:= 400
-		cMessage    := "Não há dados!"
+		cMessage    := "Nï¿½o hï¿½ dados!"
 	EndIf
 EndIf
 
@@ -509,7 +509,7 @@ ConOut( "Len(aMensagem): " + StrZero( Len(aMensagem), 3) )
 ConOut( VarInfo("", aMensagem, , .F.) )
 
 If Len( aMensagem ) == 0
-    aAdd( aMensagem, {"Dados Inválido","","Falta membros obrigatórios na body"})
+    aAdd( aMensagem, {"Dados Invï¿½lido","","Falta membros obrigatï¿½rios na body"})
 EndIf
 
 oJRetItens  :=  JsonObject():New()
@@ -784,7 +784,7 @@ If Len(Self:aURLParms) > 0
         If AllTrim( Upper( ValType( oJProd ) ) ) == "O" .Or. AllTrim( Upper( ValType( oJProd ) ) ) == "J"
             nPosCod := aScan( aNomeProd, {|x| Alltrim( Lower( x ) ) == "codigo" } )
 
-            // Alimentar subs que não foram previstas
+            // Alimentar subs que nï¿½o foram previstas
             For nPosSub := 1 To Len( aNomeProd )
                 If AllTrim( aNomeProd[nPosSub] ) <> "pdm_materiais_sub"
                     If At( "_sub", aNomeProd[nPosSub] ) > 0
@@ -796,7 +796,7 @@ If Len(Self:aURLParms) > 0
             Next
 
             If nPosCod > 0
-                // Valida se Layout existe e está preenchido...
+                // Valida se Layout existe e estï¿½ preenchido...
                 dbSelectArea("Z9A")
                 dbSetOrder(1)
                 Z9A->( dbGoTop() )
@@ -1088,7 +1088,7 @@ If Len(Self:aURLParms) > 0
                             ConOut( "Proximo " + cProximo )
                         EndIf
 
-                        // Busca chave pelo Índice Primário do Layout...
+                        // Busca chave pelo ï¿½ndice Primï¿½rio do Layout...
                         If !Empty( cProximo )
                             dbSelectArea("SB1")
                             dbSetOrder( 1 )
@@ -1100,7 +1100,7 @@ If Len(Self:aURLParms) > 0
                                 ALTERA    := .T.
                                 cCodigo   := SB1->B1_COD
                             Else
-                                ConOut("Produto não encontrado " + cChave)
+                                ConOut("Produto nï¿½o encontrado " + cChave)
                                 nOperacao := 3
                                 INCLUI    := .T.
                                 ALTERA    := .F.
@@ -1119,7 +1119,7 @@ If Len(Self:aURLParms) > 0
                                     ALTERA    := .T.
                                     cCodigo   := SB1->B1_COD
                                 Else
-                                    ConOut("Produto não encontrado " + cChave)
+                                    ConOut("Produto nï¿½o encontrado " + cChave)
                                     nOperacao := 3
                                     INCLUI    := .T.
                                     ALTERA    := .F.
@@ -1143,7 +1143,7 @@ If Len(Self:aURLParms) > 0
 
                                 If (nOperacao == 4 .And. AllTrim( Z9C->Z9C_CAMPO ) <> "B1_COD") .Or. nOperacao <> 4
                                     If AllTrim( Z9C->Z9C_CPO4MD ) <> "FIXO"
-                                        // Se membro não existir, pular o registro...
+                                        // Se membro nï¿½o existir, pular o registro...
                                         If aScan( aNomeProd, {|x| Alltrim( x ) == AllTrim( Z9C->Z9C_CPO4MD ) } ) > 0
                                             dbSelectArea("SX3")
                                             dbSetOrder(2)
@@ -1153,7 +1153,7 @@ If Len(Self:aURLParms) > 0
                                                         cConteudo := fTratar( oJProd:GetJsonText( AllTrim( Z9C->Z9C_CPO4MD ) ), AllTrim( Z9C->Z9C_TRATAM ))
                                                         aAdd( aCampos, { Z9C->Z9C_CAMPO, Padr( cConteudo, SX3->X3_TAMANHO), AllTrim( Z9C->Z9C_CPO4MD ) } )
                                                     Else
-                                                        // Se caractere, truncar pois dá erro se conteúdo for maior que X3_TAMANHO...
+                                                        // Se caractere, truncar pois dï¿½ erro se conteï¿½do for maior que X3_TAMANHO...
                                                         If Empty( Z9C->Z9C_CPOCOM )
                                                             aAdd( aCampos, { Z9C->Z9C_CAMPO, Padr( oJProd:GetJsonText( AllTrim( Z9C->Z9C_CPO4MD ) ), SX3->X3_TAMANHO), AllTrim( Z9C->Z9C_CPO4MD ) } )
                                                         Else
@@ -1200,7 +1200,7 @@ If Len(Self:aURLParms) > 0
                                                                             cConteudo := fTratar( oJSub[nLinSub]:GetJsonText( AllTrim( Z9C->Z9C_CPO4MD ) ), AllTrim( Z9C->Z9C_TRATAM ))
                                                                             aAdd( aCampos, { Z9C->Z9C_CAMPO, Padr( cConteudo, SX3->X3_TAMANHO), AllTrim( Z9C->Z9C_CPO4MD ) } )
                                                                         Else
-                                                                           // Se caractere, truncar pois dá erro se conteúdo for maior que X3_TAMANHO...
+                                                                           // Se caractere, truncar pois dï¿½ erro se conteï¿½do for maior que X3_TAMANHO...
                                                                             If Empty( Z9C->Z9C_CPOCOM )
                                                                                 aAdd( aCampos, { Z9C->Z9C_CAMPO, Padr( oJSub[nLinSub]:GetJsonText( AllTrim( Z9C->Z9C_CPO4MD ) ), SX3->X3_TAMANHO), AllTrim( Z9C->Z9C_CPO4MD ) } )
                                                                             Else
@@ -1260,7 +1260,7 @@ If Len(Self:aURLParms) > 0
                             Z9C->( dbSkip() )
                         EndDo
 
-                        //Pegando o modelo de dados, setando a operação de inclusão
+                        //Pegando o modelo de dados, setando a operaï¿½ï¿½o de inclusï¿½o
                         oModel := FWLoadModel("MATA010")
                         oModel:SetOperation(nOperacao)
                         oModel:Activate()
@@ -1273,14 +1273,14 @@ If Len(Self:aURLParms) > 0
                             EndIf
                         EndIf
 
-                        /* --> Será adicionado no layout e no 4MDG dentro das subs das empresas...
+                        /* --> Serï¿½ adicionado no layout e no 4MDG dentro das subs das empresas...
                         If !Empty( cTipo )
                             oSB1Mod:setValue("B1_TIPO"   , cTipo )
                         Else
                             oSB1Mod:setValue("B1_TIPO"   , "PA" )
                         EndIf
                         */
-                        If aScan( aCampos, {|x| AllTrim( x[1] ) == "B1_TIPO" } ) == 0 // Somente se tag não estiver no layout...
+                        If aScan( aCampos, {|x| AllTrim( x[1] ) == "B1_TIPO" } ) == 0 // Somente se tag nï¿½o estiver no layout...
                             If !Empty( cTipo )
                                 oSB1Mod:setValue("B1_TIPO"   , cTipo )
                             Else
@@ -1290,7 +1290,7 @@ If Len(Self:aURLParms) > 0
 
                         For nLin := 1 To Len( aCampos )
                             If !(AllTrim( aCampos[nLin][1] ) == "B1_COD" .And. AllTrim( aCampos[nLin][3] ) == "codigo") //.And. AllTrim( aCampos[nLin][1] ) <> "B1_TIPO"
-                                // Se código de barras Schneider traz cCodBar
+                                // Se cï¿½digo de barras Schneider traz cCodBar
                                 If AllTrim( aCampos[nLin][1] ) == "B1_CODBAR" .And. Empty( aCampos[nLin][2] ) .And. AllTrim( aCampos[nLin][3] ) == "numero_do_codigo_barras" .And. !Empty( cCodBar )
                                     oSB1Mod:setValue( aCampos[nLin][1], cCodBar )
                                 ElseIf AllTrim( aCampos[nLin][1] ) == "B1_CODGTIN" .And. Empty( aCampos[nLin][2] ) .And. AllTrim( aCampos[nLin][3] ) == "gtin" .And. !Empty( cCodGTIN )
@@ -1313,7 +1313,7 @@ If Len(Self:aURLParms) > 0
                             EndIf
                         Next
 
-                        //Se conseguir validar as informações
+                        //Se conseguir validar as informaï¿½ï¿½es
                         If oModel:VldData()
                             //Tenta realizar o Commit
                             If oModel:CommitData()
@@ -1327,35 +1327,35 @@ If Len(Self:aURLParms) > 0
                                 nStatusCode	:= 200
                                 cMessage    := "Integracao Sucesso"
                                 ConOut( "DEU CERTO MVC!" )
-                            //Se não deu certo, altera a variável para false
+                            //Se nï¿½o deu certo, altera a variï¿½vel para false
                             Else
                                 lDeuCerto := .F.
                             EndIf
-                        //Se não conseguir validar as informações, altera a variável para false
+                        //Se nï¿½o conseguir validar as informaï¿½ï¿½es, altera a variï¿½vel para false
                         Else
                             lDeuCerto := .F.
                         EndIf
  
-                        //Se não deu certo a inclusão, mostra a mensagem de erro
+                        //Se nï¿½o deu certo a inclusï¿½o, mostra a mensagem de erro
                         If ! lDeuCerto
                             //Busca o Erro do Modelo de Dados
                             aErro := oModel:GetErrorMessage()
-                            //Monta o Texto que será mostrado na tela
-                            AutoGrLog("Id do formulário de origem:"  + ' [' + AllToChar(aErro[01]) + ']')
+                            //Monta o Texto que serï¿½ mostrado na tela
+                            AutoGrLog("Id do formulï¿½rio de origem:"  + ' [' + AllToChar(aErro[01]) + ']')
                             AutoGrLog("Id do campo de origem: "      + ' [' + AllToChar(aErro[02]) + ']')
-                            AutoGrLog("Id do formulário de erro: "   + ' [' + AllToChar(aErro[03]) + ']')
+                            AutoGrLog("Id do formulï¿½rio de erro: "   + ' [' + AllToChar(aErro[03]) + ']')
                             AutoGrLog("Id do campo de erro: "        + ' [' + AllToChar(aErro[04]) + ']')
                             AutoGrLog("Id do erro: "                 + ' [' + AllToChar(aErro[05]) + ']')
                             AutoGrLog("Mensagem do erro: "           + ' [' + AllToChar(aErro[06]) + ']')
-                            AutoGrLog("Mensagem da solução: "        + ' [' + AllToChar(aErro[07]) + ']')
-                            AutoGrLog("Valor atribuído: "            + ' [' + AllToChar(aErro[08]) + ']')
+                            AutoGrLog("Mensagem da soluï¿½ï¿½o: "        + ' [' + AllToChar(aErro[07]) + ']')
+                            AutoGrLog("Valor atribuï¿½do: "            + ' [' + AllToChar(aErro[08]) + ']')
                             AutoGrLog("Valor anterior: "             + ' [' + AllToChar(aErro[09]) + ']')
 
                             //Mostra a mensagem de Erro
                             cCompErro := DTOS( MsDate() ) + Replace( Time(), ":", "")
                             MostraErro("\system\","INTFOR4MDG" + cCompErro + ".txt")
                             cMensErro := MemoRead("\system\INTFOR4MDG" + cCompErro + ".txt")
-                            aAdd( aMensagem, {"Erro gravação",cCodigo,cMensErro})
+                            aAdd( aMensagem, {"Erro gravaï¿½ï¿½o",cCodigo,cMensErro})
                             lRet 		:= .F.
                             nStatusCode	:= 500
                             cMessage    := "Erro na integracao ver mensagem!"
@@ -1437,22 +1437,22 @@ If Len(Self:aURLParms) > 0
                     aAdd( aMensagem, {"Layout Integracao Nao definida","","Efetuar cadastro de layout do metodo produtos"})
                     lRet 		:= .F.
                     nStatusCode	:= 400
-                    cMessage    := "Dados inválidos!"
+                    cMessage    := "Dados invï¿½lidos!"
                 EndIf
         	Else
-                aAdd( aMensagem, {"Dados Inválido","","Falta membros obrigatórios na body"})
+                aAdd( aMensagem, {"Dados Invï¿½lido","","Falta membros obrigatï¿½rios na body"})
 				lRet 		:= .F.
 				nStatusCode	:= 400
-				cMessage    := "Dados inválidos!"
+				cMessage    := "Dados invï¿½lidos!"
 			EndIf
 		EndIf
     Else
         ConOut("8")
 
-        aAdd( aMensagem, {"Não há dados","","Body vazia"})
+        aAdd( aMensagem, {"Nï¿½o hï¿½ dados","","Body vazia"})
 		lRet 		:= .F.
 		nStatusCode	:= 400
-		cMessage    := "Não há dados!"
+		cMessage    := "Nï¿½o hï¿½ dados!"
 	EndIf
 EndIf
 
@@ -1633,7 +1633,7 @@ If Len(Self:aURLParms) > 0
         If AllTrim( Upper( ValType( oJCliente ) ) ) == "O" .Or. AllTrim( Upper( ValType( oJCliente ) ) ) == "J"
 
             If aScan( aNomeFor, {|x| Alltrim( x ) == AllTrim( "dados_cliente_fornecedor_ambos" ) } ) > 0
-                // Valida se Layout existe e está preenchido...
+                // Valida se Layout existe e estï¿½ preenchido...
                 dbSelectArea("Z9A")
                 dbSetOrder(1)
                 Z9A->( dbGoTop() )
@@ -1709,7 +1709,7 @@ If Len(Self:aURLParms) > 0
                         ConOut( Replicate( "-", 60 ) )
                         ConOut( "Data " + DTOC( dDataBase ) + " Time " + Time() )
 
-                        // Busca chave pelo Índice Primário do Layout... (CNPJ)
+                        // Busca chave pelo ï¿½ndice Primï¿½rio do Layout... (CNPJ)
                         dbSelectArea("SA1")
                         dbSetOrder( Z9B->Z9B_INDICE )
                         If aScan( aNomeFor, {|x| Alltrim( x ) == AllTrim( Z9B->Z9B_CHVIN1 ) } ) > 0
@@ -1723,11 +1723,11 @@ If Len(Self:aURLParms) > 0
                                 ALTERA    := .T.
                                 cCodigo   := SA1->A1_COD
                                 cTipo     := SA1->A1_TIPO
-                                ConOut( "001 - Código..: " + SA1->A1_COD )
+                                ConOut( "001 - Cï¿½digo..: " + SA1->A1_COD )
                                 ConOut( "001 - Loja....: " + SA1->A1_LOJA )
                                 ConOut( "001 - cCodigo.......: " + cCodigo )
                             Else
-                                ConOut("CNPJ não encontrado " + oJCliente:GetJsonText( AllTrim( Z9B->Z9B_CHVIN1 ) ))
+                                ConOut("CNPJ nï¿½o encontrado " + oJCliente:GetJsonText( AllTrim( Z9B->Z9B_CHVIN1 ) ))
                                 nOperacao := 3
                                 INCLUI    := .T.
                                 ALTERA    := .F.
@@ -1736,7 +1736,7 @@ If Len(Self:aURLParms) > 0
                             EndIf
                         EndIf
 
-                        // Busca chave pelo Índice Alternativo do Layout... (CPF)
+                        // Busca chave pelo ï¿½ndice Alternativo do Layout... (CPF)
                         If aScan( aNomeFor, {|x| Alltrim( x ) == AllTrim( Z9B->Z9B_ALTIN1 ) } ) > 0 .And. Empty( cChave )
                             If !Empty( oJCliente:GetJsonText( AllTrim( Z9B->Z9B_ALTIN1 ) ) )
                                 ConOut( "Chave CPF: " + oJCliente:GetJsonText( AllTrim( Z9B->Z9B_ALTIN1 ) ) )
@@ -1749,11 +1749,11 @@ If Len(Self:aURLParms) > 0
                                     ALTERA    := .T.
                                     cCodigo   := SA1->A1_COD
                                     cTipo     := SA1->A1_TIPO
-                                    ConOut( "002 - Código..: " + SA1->A1_COD )
+                                    ConOut( "002 - Cï¿½digo..: " + SA1->A1_COD )
                                     ConOut( "002 - Loja....: " + SA1->A1_LOJA )
                                     ConOut( "002 - cCodigo.......: " + cCodigo )
                                 Else
-                                    ConOut("CPF não encontrado " + oJCliente:GetJsonText( AllTrim( Z9B->Z9B_ALTIN1 ) ))
+                                    ConOut("CPF nï¿½o encontrado " + oJCliente:GetJsonText( AllTrim( Z9B->Z9B_ALTIN1 ) ))
                                     nOperacao := 3
                                     INCLUI    := .T.
                                     ALTERA    := .F.
@@ -1770,7 +1770,7 @@ If Len(Self:aURLParms) > 0
                         ConOut( "003 - cCodigo.......: " + cCodigo )
                         ConOut( "003 - nOperacao.....: " + Str(nOperacao) )
 
-                        //Pegando o modelo de dados, setando a operação de inclusão
+                        //Pegando o modelo de dados, setando a operaï¿½ï¿½o de inclusï¿½o
                         oModel := FWLoadModel("MATA030")
                         oModel:SetOperation(nOperacao)
                         oModel:Activate()
@@ -1803,7 +1803,7 @@ If Len(Self:aURLParms) > 0
                                 ConOut(Z9C->Z9C_CAMPO)
                                 ConOut(Z9C->Z9C_CPO4MD)
                                 If AllTrim( Z9C->Z9C_CPO4MD ) <> "FIXO"
-                                    // Se membro não existir, pular o registro...
+                                    // Se membro nï¿½o existir, pular o registro...
                                     If aScan( aNomeFor, {|x| Alltrim( x ) == AllTrim( Z9C->Z9C_CPO4MD ) } ) > 0
                                         dbSelectArea("SX3")
                                         dbSetOrder(2)
@@ -1839,7 +1839,7 @@ If Len(Self:aURLParms) > 0
                                         EndIf
                                         ConOut(oJCliente:GetJsonText( AllTrim( Z9C->Z9C_CPO4MD ) ))
                                     Else
-                                        ConOut("Membro da Tag não existe")
+                                        ConOut("Membro da Tag nï¿½o existe")
                                     EndIf
                                 Else
                                     If !Empty( Z9C->Z9C_TRATAM )
@@ -1854,7 +1854,7 @@ If Len(Self:aURLParms) > 0
                                 EndIf
                             EndIf
 
-                            //Tratar código do município...
+                            //Tratar cï¿½digo do municï¿½pio...
                             If AllTrim( Z9C->Z9C_CAMPO ) == "A1_MUN"
                                 cMun := oJCliente:GetJsonText( AllTrim( Z9C->Z9C_CPO4MD ) )
                             ElseIf AllTrim( Z9C->Z9C_CAMPO ) == "A1_EST"
@@ -1868,7 +1868,7 @@ If Len(Self:aURLParms) > 0
                         ConOut( "005 - nOperacao.....: " + Str(nOperacao) )
                         ConOut( "005 - cChave........: " + cChave )
 
-                        // Inclui campo Código do Município se encontrar...
+                        // Inclui campo Cï¿½digo do Municï¿½pio se encontrar...
                         If !Empty( cMun ) .And. !Empty( cEst )
                             cQuery := "SELECT CC2_CODMUN FROM " + RetSqlName("CC2") + " WHERE CC2_FILIAL = '" + xFilial("CC2") + "' AND CC2_EST = '" + cEst + "' AND CC2_MUN LIKE '%" + cMun + "%' AND D_E_L_E_T_ = ' '"
                             TCQuery cQuery New Alias "TMPCC2"
@@ -1883,14 +1883,14 @@ If Len(Self:aURLParms) > 0
                         If nOperacao == 4
                             //oSA1Mod:setValue( "A1_COD", SA1->A1_COD )
                             //oSA1Mod:setValue( "A1_LOJA", SA1->A1_LOJA )
-                            ConOut( "003 - Código..: " + SA1->A1_COD )
+                            ConOut( "003 - Cï¿½digo..: " + SA1->A1_COD )
                             ConOut( "003 - Loja....: " + SA1->A1_LOJA )
                             ConOut( "006 - cCodigo.......: " + cCodigo )
                             ConOut( "006 - nOperacao.....: " + Str(nOperacao) )
                             ConOut( "006 - cChave........: " + cChave )
                         EndIf
 
-                        //Se conseguir validar as informações
+                        //Se conseguir validar as informaï¿½ï¿½es
                         If oModel:VldData()
                             //Tenta realizar o Commit
                             If oModel:CommitData()
@@ -1902,18 +1902,18 @@ If Len(Self:aURLParms) > 0
                                 EndIf
                                 aAdd( aMensagem, {"Integracao Sucesso",IIf(Empty(cCodigo),cA1Cod,cCodigo),IIf(Empty(cCodigo),"Fornecedor incluido com sucesso","Fornecedor alterado com sucesso")})
                                 ConOut( "DEU CERTO!" )
-                                ConOut( "004 - Código..: " + SA1->A1_COD )
+                                ConOut( "004 - Cï¿½digo..: " + SA1->A1_COD )
                                 ConOut( "004 - Loja....: " + SA1->A1_LOJA )
-                            //Se não deu certo, altera a variável para false
+                            //Se nï¿½o deu certo, altera a variï¿½vel para false
                             Else
                                 lDeuCerto := .F.
-                                ConOut( "005 - Código..: " + SA1->A1_COD )
+                                ConOut( "005 - Cï¿½digo..: " + SA1->A1_COD )
                                 ConOut( "005 - Loja....: " + SA1->A1_LOJA )
                             EndIf
-                        //Se não conseguir validar as informações, altera a variável para false
+                        //Se nï¿½o conseguir validar as informaï¿½ï¿½es, altera a variï¿½vel para false
                         Else
                             lDeuCerto := .F.
-                            ConOut( "006 - Código..: " + SA1->A1_COD )
+                            ConOut( "006 - Cï¿½digo..: " + SA1->A1_COD )
                             ConOut( "006 - Loja....: " + SA1->A1_LOJA )
                         EndIf
  
@@ -1921,19 +1921,19 @@ If Len(Self:aURLParms) > 0
                         ConOut( "007 - nOperacao.....: " + Str(nOperacao) )
                         ConOut( "007 - cChave........: " + cChave )
 
-                       //Se não deu certo a inclusão, mostra a mensagem de erro
+                       //Se nï¿½o deu certo a inclusï¿½o, mostra a mensagem de erro
                         If ! lDeuCerto
                             //Busca o Erro do Modelo de Dados
                             aErro := oModel:GetErrorMessage()
-                            //Monta o Texto que será mostrado na tela
-                            AutoGrLog("Id do formulário de origem:"  + ' [' + AllToChar(aErro[01]) + ']')
+                            //Monta o Texto que serï¿½ mostrado na tela
+                            AutoGrLog("Id do formulï¿½rio de origem:"  + ' [' + AllToChar(aErro[01]) + ']')
                             AutoGrLog("Id do campo de origem: "      + ' [' + AllToChar(aErro[02]) + ']')
-                            AutoGrLog("Id do formulário de erro: "   + ' [' + AllToChar(aErro[03]) + ']')
+                            AutoGrLog("Id do formulï¿½rio de erro: "   + ' [' + AllToChar(aErro[03]) + ']')
                             AutoGrLog("Id do campo de erro: "        + ' [' + AllToChar(aErro[04]) + ']')
                             AutoGrLog("Id do erro: "                 + ' [' + AllToChar(aErro[05]) + ']')
                             AutoGrLog("Mensagem do erro: "           + ' [' + AllToChar(aErro[06]) + ']')
-                            AutoGrLog("Mensagem da solução: "        + ' [' + AllToChar(aErro[07]) + ']')
-                            AutoGrLog("Valor atribuído: "            + ' [' + AllToChar(aErro[08]) + ']')
+                            AutoGrLog("Mensagem da soluï¿½ï¿½o: "        + ' [' + AllToChar(aErro[07]) + ']')
+                            AutoGrLog("Valor atribuï¿½do: "            + ' [' + AllToChar(aErro[08]) + ']')
                             AutoGrLog("Valor anterior: "             + ' [' + AllToChar(aErro[09]) + ']')
                             If nOperacao == 4 .And. cCodigo == SA1->A1_COD
                                 RecLock("SA1", .F.)
@@ -1947,7 +1947,7 @@ If Len(Self:aURLParms) > 0
                                                 .And. AllTrim( Z9C->Z9C_TRATAM ) <> "GRUPO_EMPRESA"  .And. AllTrim( Z9C->Z9C_TRATAM ) <> "EMPRESA" ;
                                                 .And. AllTrim( Z9C->Z9C_TRATAM ) <> "UNIDADE_NEGOCIO"  .And. AllTrim( Z9C->Z9C_TRATAM ) <> "FILIAL"
                                             If AllTrim( Z9C->Z9C_CPO4MD ) <> "FIXO"
-                                                // Se membro não existir, pular o registro...
+                                                // Se membro nï¿½o existir, pular o registro...
                                                 If aScan( aNomeFor, {|x| Alltrim( x ) == AllTrim( Z9C->Z9C_CPO4MD ) } ) > 0
                                                     dbSelectArea("SX3")
                                                     dbSetOrder(2)
@@ -1957,7 +1957,7 @@ If Len(Self:aURLParms) > 0
                                                                 cConteudo := fTratar( oJCliente:GetJsonText( AllTrim( Z9C->Z9C_CPO4MD ) ), AllTrim( Z9C->Z9C_TRATAM ))
                                                                 &( "SA1->" + AllTrim( Z9C->Z9C_CAMPO ) ) := Padr( cConteudo, SX3->X3_TAMANHO)
                                                             Else
-                                                                // Se caractere, truncar pois dá erro se conteúdo for maior que X3_TAMANHO...
+                                                                // Se caractere, truncar pois dï¿½ erro se conteï¿½do for maior que X3_TAMANHO...
                                                                 If Empty( Z9C->Z9C_CPOCOM )
                                                                     &( "SA1->" + AllTrim( Z9C->Z9C_CAMPO ) ) := Padr( oJCliente:GetJsonText( AllTrim( Z9C->Z9C_CPO4MD ) ), SX3->X3_TAMANHO)
                                                                 Else
@@ -1996,14 +1996,14 @@ If Len(Self:aURLParms) > 0
                                 cA1Cod := SA1->A1_COD
                                 aAdd( aMensagem, {"Integracao Sucesso",IIf(Empty(cCodigo),cA1Cod,cCodigo),IIf(Empty(cCodigo),"Fornecedor incluido com sucesso","Fornecedor alterado com sucesso")})
                                 ConOut( "DEU CERTO!" )
-                                ConOut( "004 - Código..: " + SA1->A1_COD )
+                                ConOut( "004 - Cï¿½digo..: " + SA1->A1_COD )
                                 ConOut( "004 - Loja....: " + SA1->A1_LOJA )
                             Else
                                 //Mostra a mensagem de Erro
                                 cCompErro := DTOS( MsDate() ) + Replace( Time(), ":", "")
                                 MostraErro("\system\","INTFOR4MDG" + cCompErro + ".txt")
                                 cMensErro := MemoRead("\system\INTFOR4MDG" + cCompErro + ".txt")
-                                aAdd( aMensagem, {"Erro gravação",cCodigo,cMensErro})
+                                aAdd( aMensagem, {"Erro gravaï¿½ï¿½o",cCodigo,cMensErro})
                                 ConOut( "DEU ERRO!" )
                             EndIf
                         EndIf
@@ -2017,20 +2017,20 @@ If Len(Self:aURLParms) > 0
                     aAdd( aMensagem, {"Layout Integracao Nao definida","","Efetuar cadastro de layout do metodo fornecedor"})
                     lRet 		:= .F.
                     nStatusCode	:= 400
-                    cMessage    := "Dados inválidos!"
+                    cMessage    := "Dados invï¿½lidos!"
                 EndIf
         	Else
-                aAdd( aMensagem, {"Dados Inválido","","Falta membros obrigatórios na body"})
+                aAdd( aMensagem, {"Dados Invï¿½lido","","Falta membros obrigatï¿½rios na body"})
 				lRet 		:= .F.
 				nStatusCode	:= 400
-				cMessage    := "Dados inválidos!"
+				cMessage    := "Dados invï¿½lidos!"
 			EndIf
 		EndIf
     Else
-        aAdd( aMensagem, {"Não há dados","","Body vazia"})
+        aAdd( aMensagem, {"Nï¿½o hï¿½ dados","","Body vazia"})
 		lRet 		:= .F.
 		nStatusCode	:= 400
-		cMessage    := "Não há dados!"
+		cMessage    := "Nï¿½o hï¿½ dados!"
 	EndIf
 EndIf
 
@@ -2072,12 +2072,12 @@ Local cChar  := ""
 Local nX     := 0 
 Local nY     := 0
 Local cVogal := "aeiouAEIOU"
-Local cAgudo := "áéíóú"+"ÁÉÍÓÚ"
-Local cCircu := "âêîôû"+"ÂÊÎÔÛ"
-Local cTrema := "äëïöü"+"ÄËÏÖÜ"
-Local cCrase := "àèìòù"+"ÀÈÌÒÙ" 
-Local cTio   := "ãõÃÕ"
-Local cCecid := "çÇ"
+Local cAgudo := "ï¿½ï¿½ï¿½ï¿½ï¿½"+"ï¿½ï¿½ï¿½ï¿½ï¿½"
+Local cCircu := "ï¿½ï¿½ï¿½ï¿½ï¿½"+"ï¿½ï¿½ï¿½ï¿½ï¿½"
+Local cTrema := "ï¿½ï¿½ï¿½ï¿½ï¿½"+"ï¿½ï¿½ï¿½ï¿½ï¿½"
+Local cCrase := "ï¿½ï¿½ï¿½ï¿½ï¿½"+"ï¿½ï¿½ï¿½ï¿½ï¿½" 
+Local cTio   := "ï¿½ï¿½ï¿½ï¿½"
+Local cCecid := "ï¿½ï¿½"
 Local cMaior := "&lt;"
 Local cMenor := "&gt;"
 
@@ -2126,18 +2126,18 @@ EndIf
 cString := StrTran( cString, CRLF, " " )
 
 cString := StrTran(cString,"ISO-8859-1","UTF-8")
-cString := StrTran(cString,"AƒASAƒAu","co")
-cString := StrTran(cString,"AƒA¡","a")
-cString := StrTran(cString,"AƒAS","c")
-cString := StrTran(cString,"AƒA£","a")
-cString := StrTran(cString,"AƒA3","o")
-cString := StrTran(cString,"AƒA©","e")
-cString := StrTran(cString,"AƒA-","i")
-cString := StrTran(cString,"AƒA'","o")
-cString := StrTran(cString,"AƒAS","c")
-cString := StrTran(cString,"AƒA3","o")
-cString := StrTran(cString,"AƒAu","o")
-cString := StrTran(cString,"AƒAS","c")
+cString := StrTran(cString,"Aï¿½ASAï¿½Au","co")
+cString := StrTran(cString,"Aï¿½Aï¿½","a")
+cString := StrTran(cString,"Aï¿½AS","c")
+cString := StrTran(cString,"Aï¿½Aï¿½","a")
+cString := StrTran(cString,"Aï¿½A3","o")
+cString := StrTran(cString,"Aï¿½Aï¿½","e")
+cString := StrTran(cString,"Aï¿½A-","i")
+cString := StrTran(cString,"Aï¿½A'","o")
+cString := StrTran(cString,"Aï¿½AS","c")
+cString := StrTran(cString,"Aï¿½A3","o")
+cString := StrTran(cString,"Aï¿½Au","o")
+cString := StrTran(cString,"Aï¿½AS","c")
 cString := StrTran(cString,"ASAu","co")
 cString := StrTran(cString,"ASAÂ£","ca")
 cString := StrTran(cString,"AÂ¡","a")
@@ -2145,136 +2145,136 @@ cString := StrTran(cString,"AÂ£","a")
 cString := StrTran(cString,"AÂ¢","a")
 cString := StrTran(cString,"AÂ©","o")
 cString := StrTran(cString,"A-","i")
-cString := StrTran(cString,"á","a")
-cString := StrTran(cString,"Á","A")
-cString := StrTran(cString,"à","a")
-cString := StrTran(cString,"À","A")
-cString := StrTran(cString,"ã","a")
-cString := StrTran(cString,"Ã","A")
-cString := StrTran(cString,"â","a")
-cString := StrTran(cString,"Â","A")
-cString := StrTran(cString,"ä","a")
-cString := StrTran(cString,"Ä","A")
-cString := StrTran(cString,"é","e")
-cString := StrTran(cString,"É","E")
-cString := StrTran(cString,"ë","e")
-cString := StrTran(cString,"Ë","E")
-cString := StrTran(cString,"ê","e")
-cString := StrTran(cString,"Ê","E")
-cString := StrTran(cString,"í","i")
-cString := StrTran(cString,"Í","I")
-cString := StrTran(cString,"ï","i")
-cString := StrTran(cString,"Ï","I")
-cString := StrTran(cString,"î","i")
-cString := StrTran(cString,"Î","I")
-cString := StrTran(cString,"ý","y")
-cString := StrTran(cString,"Ý","y")
-cString := StrTran(cString,"ÿ","y")
-cString := StrTran(cString,"ó","o")
-cString := StrTran(cString,"Ó","O")
-cString := StrTran(cString,"õ","o")
-cString := StrTran(cString,"Õ","O")
-cString := StrTran(cString,"ö","o")
-cString := StrTran(cString,"Ö","O")
-cString := StrTran(cString,"ô","o")
-cString := StrTran(cString,"Ô","O")
-cString := StrTran(cString,"ò","o")
-cString := StrTran(cString,"Ò","O")
-cString := StrTran(cString,"ú","u")
-cString := StrTran(cString,"Ú","U")
-cString := StrTran(cString,"ù","u")
-cString := StrTran(cString,"Ù","U")
-cString := StrTran(cString,"ü","u")
-cString := StrTran(cString,"Ü","U")
-cString := StrTran(cString,"ç","c")
-cString := StrTran(cString,"Ç","C")
-cString := StrTran(cString,"º","o")
-cString := StrTran(cString,"°","o")
-cString := StrTran(cString,"ª","a")
-cString := StrTran(cString,"ñ","n")
-cString := StrTran(cString,"Ñ","N")
-cString := StrTran(cString,"²","2")
-cString := StrTran(cString,"³","3")
-cString := StrTran(cString,"’","'")
-cString := StrTran(cString,"§","S")
-cString := StrTran(cString,"±","+")
-cString := StrTran(cString,"­","-")
-cString := StrTran(cString,"´","'")
+cString := StrTran(cString,"ï¿½","a")
+cString := StrTran(cString,"ï¿½","A")
+cString := StrTran(cString,"ï¿½","a")
+cString := StrTran(cString,"ï¿½","A")
+cString := StrTran(cString,"ï¿½","a")
+cString := StrTran(cString,"ï¿½","A")
+cString := StrTran(cString,"ï¿½","a")
+cString := StrTran(cString,"ï¿½","A")
+cString := StrTran(cString,"ï¿½","a")
+cString := StrTran(cString,"ï¿½","A")
+cString := StrTran(cString,"ï¿½","e")
+cString := StrTran(cString,"ï¿½","E")
+cString := StrTran(cString,"ï¿½","e")
+cString := StrTran(cString,"ï¿½","E")
+cString := StrTran(cString,"ï¿½","e")
+cString := StrTran(cString,"ï¿½","E")
+cString := StrTran(cString,"ï¿½","i")
+cString := StrTran(cString,"ï¿½","I")
+cString := StrTran(cString,"ï¿½","i")
+cString := StrTran(cString,"ï¿½","I")
+cString := StrTran(cString,"ï¿½","i")
+cString := StrTran(cString,"ï¿½","I")
+cString := StrTran(cString,"ï¿½","y")
+cString := StrTran(cString,"ï¿½","y")
+cString := StrTran(cString,"ï¿½","y")
+cString := StrTran(cString,"ï¿½","o")
+cString := StrTran(cString,"ï¿½","O")
+cString := StrTran(cString,"ï¿½","o")
+cString := StrTran(cString,"ï¿½","O")
+cString := StrTran(cString,"ï¿½","o")
+cString := StrTran(cString,"ï¿½","O")
+cString := StrTran(cString,"ï¿½","o")
+cString := StrTran(cString,"ï¿½","O")
+cString := StrTran(cString,"ï¿½","o")
+cString := StrTran(cString,"ï¿½","O")
+cString := StrTran(cString,"ï¿½","u")
+cString := StrTran(cString,"ï¿½","U")
+cString := StrTran(cString,"ï¿½","u")
+cString := StrTran(cString,"ï¿½","U")
+cString := StrTran(cString,"ï¿½","u")
+cString := StrTran(cString,"ï¿½","U")
+cString := StrTran(cString,"ï¿½","c")
+cString := StrTran(cString,"ï¿½","C")
+cString := StrTran(cString,"ï¿½","o")
+cString := StrTran(cString,"ï¿½","o")
+cString := StrTran(cString,"ï¿½","a")
+cString := StrTran(cString,"ï¿½","n")
+cString := StrTran(cString,"ï¿½","N")
+cString := StrTran(cString,"ï¿½","2")
+cString := StrTran(cString,"ï¿½","3")
+cString := StrTran(cString,"ï¿½","'")
+cString := StrTran(cString,"ï¿½","S")
+cString := StrTran(cString,"ï¿½","+")
+cString := StrTran(cString,"ï¿½","-")
+cString := StrTran(cString,"ï¿½","'")
 cString := StrTran(cString,"o","o")
-cString := StrTran(cString,"µ","u")
-cString := StrTran(cString,"¼","1/4")
-cString := StrTran(cString,"½","1/2")
-cString := StrTran(cString,"¾","3/4")
+cString := StrTran(cString,"ï¿½","u")
+cString := StrTran(cString,"ï¿½","1/4")
+cString := StrTran(cString,"ï¿½","1/2")
+cString := StrTran(cString,"ï¿½","3/4")
 cString := StrTran(cString,"&","e") 
-cString := StrTran(cString,"þ","b")
-cString := StrTran(cString,"¿",".")
-cString := StrTran(cString,"ø","o")
-cString := StrTran(cString,"Ø","O")
+cString := StrTran(cString,"ï¿½","b")
+cString := StrTran(cString,"ï¿½",".")
+cString := StrTran(cString,"ï¿½","o")
+cString := StrTran(cString,"ï¿½","O")
 cString := StrTran(cString,"*",".")
-cString := StrTran(cString,"AƒASAƒAu","co")
-cString := StrTran(cString,"AƒA¡","a")
-cString := StrTran(cString,"AƒAS","c")
-cString := StrTran(cString,"AƒA£","a")
-cString := StrTran(cString,"AƒA3","o")
-cString := StrTran(cString,"AƒA©","e")
-cString := StrTran(cString,"AƒA-","i")
-cString := StrTran(cString,"AƒA'","o")
-cString := StrTran(cString,"AƒAS","c")
-cString := StrTran(cString,"AƒA3","o")
-cString := StrTran(cString,"AƒAu","o")
-cString := StrTran(cString,"AƒAS","ç")
-cString := StrTran(cString,"ASAu","ço")
-cString := StrTran(cString,"ASAÂ£","çõ")
+cString := StrTran(cString,"Aï¿½ASAï¿½Au","co")
+cString := StrTran(cString,"Aï¿½Aï¿½","a")
+cString := StrTran(cString,"Aï¿½AS","c")
+cString := StrTran(cString,"Aï¿½Aï¿½","a")
+cString := StrTran(cString,"Aï¿½A3","o")
+cString := StrTran(cString,"Aï¿½Aï¿½","e")
+cString := StrTran(cString,"Aï¿½A-","i")
+cString := StrTran(cString,"Aï¿½A'","o")
+cString := StrTran(cString,"Aï¿½AS","c")
+cString := StrTran(cString,"Aï¿½A3","o")
+cString := StrTran(cString,"Aï¿½Au","o")
+cString := StrTran(cString,"Aï¿½AS","ï¿½")
+cString := StrTran(cString,"ASAu","ï¿½o")
+cString := StrTran(cString,"ASAÂ£","ï¿½ï¿½")
 cString := StrTran(cString,"AÂ¡","a")
 cString := StrTran(cString,"AÂ£","a")
 cString := StrTran(cString,"AÂ¢","a")
 cString := StrTran(cString,"AÂ©","o")
 cString := StrTran(cString,"A-","i")
-cString := StrTran(cString,"AƒA¢","a")
-cString := StrTran(cString,"AƒAa","e")
-cString := StrTran(cString,"AƒAo","u")
-cString := StrTran(cString,"AƒA","a")
-cString := StrTran(cString,"ƒa€¡","Ç")
-cString := StrTran(cString,"AƒÆ ","A")
+cString := StrTran(cString,"Aï¿½Aï¿½","a")
+cString := StrTran(cString,"Aï¿½Aa","e")
+cString := StrTran(cString,"Aï¿½Ao","u")
+cString := StrTran(cString,"Aï¿½A","a")
+cString := StrTran(cString,"ï¿½aï¿½ï¿½","ï¿½")
+cString := StrTran(cString,"Aï¿½ï¿½ ","A")
 cString := StrTran(cString,"  "," ")
 cString := Replace(cString,"'"," ")
-cString := StrTran(cString,"Aƒa€¡AƒÆ ","ÇÃ")
-cString := StrTran(cString,"ƒa€¡AƒÆ ","ÇÃ")
+cString := StrTran(cString,"Aï¿½aï¿½ï¿½Aï¿½ï¿½ ","ï¿½ï¿½")
+cString := StrTran(cString,"ï¿½aï¿½ï¿½Aï¿½ï¿½ ","ï¿½ï¿½")
 If lMoeda
-    cString := StrTran(cString,"A¡","a")
+    cString := StrTran(cString,"Aï¿½","a")
     cString := StrTran(cString,"Ao","u")
     cString := StrTran(cString,"A3","o")
     cString := StrTran(cString,"A3","o")
-    cString := StrTran(cString,"A£","a")
+    cString := StrTran(cString,"Aï¿½","a")
     cString := StrTran(cString,"Aa","e")
-    cString := StrTran(cString,"A©","e")
+    cString := StrTran(cString,"Aï¿½","e")
     cString := StrTran(cString,"AS","c")
-    cString := StrTran(cString,"A¢","a")
+    cString := StrTran(cString,"Aï¿½","a")
 EndIf
-cString := StrTran(cString,"ACAƒÆ ","CA")
-cString := StrTran(cString,"ACAƒÆ","CA")
-cString := StrTran(cString,"ACAƒa€¢","CO")
-cString := StrTran(cString,"AƒÅ ","E")
-cString := StrTran(cString,"Aƒ.","I")
-cString := StrTran(cString,"Aƒ.","A")
-cString := StrTran(cString,"AƒÆ ","A")
+cString := StrTran(cString,"ACAï¿½ï¿½ ","CA")
+cString := StrTran(cString,"ACAï¿½ï¿½","CA")
+cString := StrTran(cString,"ACAï¿½aï¿½ï¿½","CO")
+cString := StrTran(cString,"Aï¿½Å ","E")
+cString := StrTran(cString,"Aï¿½.","I")
+cString := StrTran(cString,"Aï¿½.","A")
+cString := StrTran(cString,"Aï¿½ï¿½ ","A")
 cString := StrTran(cString,"MIQUINAS ","MAQUINAS")
-cString := StrTran(cString,"Aƒa€œ","U")
-cString := StrTran(cString,"A‚Ao","o.")
-cString := StrTran(cString,"Aƒa€œ","O")
-cString := StrTran(cString,"Aƒa€o","E")
-cString := StrTran(cString,"Aƒa€š","A")
-cString := StrTran(cString,"AƒEœ","Ø")
+cString := StrTran(cString,"Aï¿½aï¿½ï¿½","U")
+cString := StrTran(cString,"Aï¿½Ao","o.")
+cString := StrTran(cString,"Aï¿½aï¿½ï¿½","O")
+cString := StrTran(cString,"Aï¿½aï¿½o","E")
+cString := StrTran(cString,"Aï¿½aï¿½ï¿½","A")
+cString := StrTran(cString,"Aï¿½Eï¿½","ï¿½")
 cString := StrTran(cString,"MUDULO","MODULO")
 cString := StrTran(cString,"MUD.","MOD.")
 cString := StrTran(cString,"MUD ","MOD ")
-cString := StrTran(cString,"BOTAƒa€¢ES","BOTOES")
+cString := StrTran(cString,"BOTAï¿½aï¿½ï¿½ES","BOTOES")
 cString := StrTran(cString,"CUDIGO","CODIGO")
 //cString := StrTran(cString,'""','"')
-cString := StrTran(cString,"TRIFISICA","TRIFÁSICA")
-cString := StrTran(cString,"A¢a‚¬a€œ","-")
-cString := StrTran(cString,"AA¢a‚¬Å¡A2","2")
-cString := StrTran(cString,"MMA‚A2","MM2")
+cString := StrTran(cString,"TRIFISICA","TRIFï¿½SICA")
+cString := StrTran(cString,"Aï¿½aï¿½ï¿½aï¿½ï¿½","-")
+cString := StrTran(cString,"AAï¿½aï¿½ï¿½Å¡A2","2")
+cString := StrTran(cString,"MMAï¿½A2","MM2")
 cString := StrTran(cString," iB "," A-B ")
 cString := StrTran(cString,"1.25A-2A","1,25~2A")
 cString := StrTran(StrTran(StrTran(StrTran(StrTran(StrTran(StrTran(StrTran(StrTran(StrTran(cString,"0i0","0A-0"),"0i1","0A-1"),"0i2","0A-2"),"0i3","0A-3"),"0i4","0A-4"),"0i5","0A-5"),"0i6","0A-6"),"0i7","0A-7"),"0i8","0A-8"),"0i9","0A-9")
@@ -2291,21 +2291,21 @@ cString := StrTran(cString,"LIGiDESLIGi8","LIGA-DESLIGA-8")
 cString := StrTran(cString,"AUTOM-20iFIX","AUTOM-20A-FIX")
 cString := StrTran(cString,"PLISTIC","PLASTIC")
 cString := StrTran(cString,"METILIC","METALIC")
-cString := StrTran(cString,"METAA‚.LIC","METALIC")
+cString := StrTran(cString,"METAAï¿½.LIC","METALIC")
 cString := StrTran(cString," IGUA "," AGUA ")
-cString := StrTran(cString,"OPERAÇAƒa€¢ES","OPERACOES")
-cString := StrTran(cString,"Aƒa€¢","O")
+cString := StrTran(cString,"OPERAï¿½Aï¿½aï¿½ï¿½ES","OPERACOES")
+cString := StrTran(cString,"Aï¿½aï¿½ï¿½","O")
 cString := StrTran(cString,",",".")
 
-//cString := StrTran(cString,"CAO","ÇAO")
-//cString := StrTran(cString,"COES","ÇOES")
-//cString := StrTran(cString,"cao","çao")
-//cString := StrTran(cString,"coes","ções")
+//cString := StrTran(cString,"CAO","ï¿½AO")
+//cString := StrTran(cString,"COES","ï¿½OES")
+//cString := StrTran(cString,"cao","ï¿½ao")
+//cString := StrTran(cString,"coes","ï¿½ï¿½es")
 
-//cString := StrTran(cString,"AACAO","AÇAO")
-//cString := StrTran(cString,"AACOES","AÇOES")
+//cString := StrTran(cString,"AACAO","Aï¿½AO")
+//cString := StrTran(cString,"AACOES","Aï¿½OES")
 
-cString := StrTran(cString,"AÇ","Ç")
+cString := StrTran(cString,"Aï¿½","ï¿½")
 
 Return cString
 
